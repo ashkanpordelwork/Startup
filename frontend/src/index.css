@@ -1,37 +1,23 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: "IRANSansFaNum";
-  src: url("/fonts/IRANSansFaNum-Light.ttf") format("truetype");
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "IRANSansFaNum";
-  src: url("/fonts/IRANSansFaNum.ttf") format("truetype");
+  font-family: "YekanBakhFaNum";
+  src: url("/fonts/YekanBakhFaNum-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "IRANSansFaNum";
-  src: url("/fonts/IRANSansFaNum-Medium.ttf") format("truetype");
-  font-weight: 500;
+  font-family: "YekanBakhFaNum";
+  src: url("/fonts/YekanBakhFaNum-SemiBold.ttf") format("truetype");
+  font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "IRANSansFaNum";
-  src: url("/fonts/IRANSansFaNum-Bold.ttf") format("truetype");
+  font-family: "YekanBakhFaNum";
+  src: url("/fonts/YekanBakhFaNum-Bold.ttf") format("truetype");
   font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "IRANSansFaNum";
-  src: url("/fonts/IRANSansFaNum-Black.ttf") format("truetype");
-  font-weight: 900;
   font-style: normal;
   font-display: swap;
 }
@@ -60,7 +46,7 @@
 }
 
 @theme inline {
-  --font-sans: "IRANSansFaNum", "Tahoma", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "YekanBakhFaNum", "Tahoma", ui-sans-serif, system-ui, sans-serif;
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
