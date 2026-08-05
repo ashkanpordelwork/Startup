@@ -75,3 +75,9 @@ export interface AdminStats {
   dailyLogCompletionRate: number;
   trackCounts: { track: string; count: number }[];
 }
+
+export interface IntentResult {
+  goal: GoalAnswers["primaryGoal"] | null;
+  matchedKeyword: string | null;
+  reflection: string;
+}

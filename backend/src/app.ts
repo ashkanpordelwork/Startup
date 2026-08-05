@@ -1,16 +1,17 @@
 import cors from "cors";
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { initDb } from "./db.js";
 import { adminRouter } from "./routes/admin.js";
 import { dailyLogRouter } from "./routes/dailyLog.js";
 import { intakeRouter } from "./routes/intake.js";
+import { intentRouter } from "./routes/intent.js";
 
 export const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use(async (_req, res, next) => {
+async function requireDb(_req: Request, res: Response, next: NextFunction) {
   try {
     await initDb();
     next();
@@ -18,9 +19,10 @@ app.use(async (_req, res, next) => {
     console.error("Database init failed:", err);
     res.status(500).json({ error: "database unavailable" });
   }
-});
+}
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
-app.use("/api/intake", intakeRouter);
-app.use("/api/daily-log", dailyLogRouter);
-app.use("/api/admin", adminRouter);
+app.use("/api/intent", intentRouter);
+app.use("/api/intake", requireDb, intakeRouter);
+app.use("/api/daily-log", requireDb, dailyLogRouter);
+app.use("/api/admin", requireDb, adminRouter);

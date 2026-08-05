@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import Admin from "./pages/Admin";
 import Dashboard from "./pages/Dashboard";
 import Intake from "./pages/Intake";
+import IntentChat from "./pages/IntentChat";
 import Result from "./pages/Result";
 
 export default function App() {
@@ -11,7 +12,8 @@ export default function App() {
     <HashRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<Intake />} />
+          <Route path="/" element={<IntentChat />} />
+          <Route path="/intake" element={<Intake />} />
           <Route path="/result" element={<Result />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<Admin />} />

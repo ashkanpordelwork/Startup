@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,8 +105,14 @@ const defaultAnswers: IntakeAnswers = {
 const STEPS = ["پرچم‌های ایمنی", "خواب", "استرس", "سابقه‌ی رژیم", "فعالیت بدنی", "هدف"];
 
 export default function Intake() {
+  const location = useLocation();
+  const initialGoal = (location.state as { initialGoal?: IntakeAnswers["goal"]["primaryGoal"] } | null)
+    ?.initialGoal;
+
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<IntakeAnswers>(defaultAnswers);
+  const [answers, setAnswers] = useState<IntakeAnswers>(() =>
+    initialGoal ? { ...defaultAnswers, goal: { ...defaultAnswers.goal, primaryGoal: initialGoal } } : defaultAnswers
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
