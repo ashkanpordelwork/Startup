@@ -392,7 +392,7 @@ export default function Chat() {
       </div>
 
       {phase === "intent" && (
-        <div className="flex items-center gap-2 border-t bg-background px-4 py-3">
+        <div className="flex items-center gap-2 bg-background px-4 py-3">
           <div className="flex flex-1 items-center gap-2 rounded-xl bg-card px-3 py-2 shadow-chat">
             <Input
               value={input}

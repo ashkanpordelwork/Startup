@@ -13,7 +13,7 @@ const tabs = [
 function BottomNav() {
   const location = useLocation();
   return (
-    <nav className="flex items-end justify-around border-t bg-background px-2 pb-2 pt-1.5">
+    <nav className="flex items-end justify-around bg-background px-2 pb-2 pt-1.5">
       {tabs.map((tab) => {
         const isActive = tab.end ? location.pathname === tab.to : location.pathname.startsWith(tab.to);
         const Icon = tab.icon;
@@ -59,7 +59,7 @@ export default function Layout({ children }: PropsWithChildren) {
   return (
     <div className="flex h-screen justify-center bg-muted">
       <div className="flex h-full w-full max-w-[420px] min-w-0 flex-col bg-background">
-        <header className="grid grid-cols-[1fr_auto_1fr] items-center border-b bg-background px-4 py-3">
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center bg-background px-4 py-3">
           <span />
           <h1 className="text-center text-xl font-semibold">چت‌بات</h1>
           <span className="flex justify-end text-primary">
