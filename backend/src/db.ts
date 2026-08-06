@@ -34,6 +34,8 @@ export function initDb(): Promise<void> {
           raw_answers TEXT NOT NULL,
           computed_track TEXT NOT NULL,
           message TEXT NOT NULL,
+          title TEXT NOT NULL DEFAULT 'برنامه',
+          status TEXT NOT NULL DEFAULT 'draft',
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `;

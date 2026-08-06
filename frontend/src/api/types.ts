@@ -45,13 +45,34 @@ export interface IntakeAnswers {
   goal: GoalAnswers;
 }
 
+export type PlanStatus = "draft" | "confirmed";
+
 export interface IntakeResult {
-  userId: string;
-  intakeId: string;
+  planId: string;
+  title: string;
+  status: PlanStatus;
   track: string;
   message: string;
   steps: string[];
   reasonCodes: string[];
+  actions: ActionItem[];
+}
+
+export interface PlanSummary {
+  id: string;
+  title: string;
+  track: string;
+  status: PlanStatus;
+  createdAt: string;
+  actionsCount: number;
+}
+
+export interface PlanDetail {
+  id: string;
+  title: string;
+  track: string;
+  status: PlanStatus;
+  createdAt: string;
   actions: ActionItem[];
 }
 
@@ -73,6 +94,14 @@ export type ReportKind = "done" | "progress" | "problem" | "limitation";
 export interface ActionReportResult {
   reportId: string;
   reply: string;
+}
+
+export type RefineFeedback = "simplify" | "remove" | "keep";
+
+export interface RefineResult {
+  reply: string;
+  action: ActionItem | null;
+  removed: boolean;
 }
 
 export interface ChatMessage {

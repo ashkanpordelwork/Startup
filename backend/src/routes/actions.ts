@@ -19,23 +19,6 @@ function toActionDto(row: Record<string, unknown>) {
   };
 }
 
-actionsRouter.get("/", async (req, res) => {
-  const userId = req.userId!;
-
-  const latestIntake = await sql`
-    SELECT id FROM intake_responses WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 1
-  `;
-  if (latestIntake.length === 0) {
-    return res.json([]);
-  }
-
-  const rows = await sql`
-    SELECT id, category, title, summary, steps, status, created_at
-    FROM action_items WHERE intake_id = ${latestIntake[0].id} ORDER BY created_at ASC
-  `;
-  res.json(rows.map(toActionDto));
-});
-
 actionsRouter.get("/:id", async (req, res) => {
   const userId = req.userId!;
   const rows = await sql`

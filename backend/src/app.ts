@@ -7,6 +7,7 @@ import { authRouter } from "./routes/auth.js";
 import { chatRouter } from "./routes/chat.js";
 import { intakeRouter } from "./routes/intake.js";
 import { intentRouter } from "./routes/intent.js";
+import { plansRouter } from "./routes/plans.js";
 
 export const app = express();
 
@@ -27,5 +28,6 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/intent", intentRouter);
 app.use("/api/auth", requireDb, authRouter);
 app.use("/api/intake", requireDb, requireAuth, intakeRouter);
+app.use("/api/plans", requireDb, requireAuth, plansRouter);
 app.use("/api/actions", requireDb, requireAuth, actionsRouter);
 app.use("/api/chat", requireDb, requireAuth, chatRouter);

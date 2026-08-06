@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
+import { getPlanTitle } from "../actions/planTitles.js";
 import { getActionTemplates } from "../actions/templates.js";
 import { sql } from "../db.js";
 import { computeTrack } from "../triage/rules.js";
@@ -16,11 +17,12 @@ intakeRouter.post("/", async (req, res) => {
   }
 
   const result = computeTrack(answers);
-  const intakeId = uuidv4();
+  const planId = uuidv4();
+  const title = getPlanTitle(answers.goal?.primaryGoal, result.track);
 
   await sql`
-    INSERT INTO intake_responses (id, user_id, raw_answers, computed_track, message)
-    VALUES (${intakeId}, ${userId}, ${JSON.stringify(answers)}, ${result.track}, ${result.message})
+    INSERT INTO intake_responses (id, user_id, raw_answers, computed_track, message, title, status)
+    VALUES (${planId}, ${userId}, ${JSON.stringify(answers)}, ${result.track}, ${result.message}, ${title}, 'draft')
   `;
 
   const templates = getActionTemplates(result.track);
@@ -29,7 +31,7 @@ intakeRouter.post("/", async (req, res) => {
     const actionId = uuidv4();
     await sql`
       INSERT INTO action_items (id, user_id, intake_id, category, title, summary, steps)
-      VALUES (${actionId}, ${userId}, ${intakeId}, ${template.category}, ${template.title}, ${template.summary}, ${JSON.stringify(template.steps)})
+      VALUES (${actionId}, ${userId}, ${planId}, ${template.category}, ${template.title}, ${template.summary}, ${JSON.stringify(template.steps)})
     `;
     actions.push({
       id: actionId,
@@ -42,26 +44,13 @@ intakeRouter.post("/", async (req, res) => {
   }
 
   res.status(201).json({
-    userId,
-    intakeId,
+    planId,
+    title,
+    status: "draft",
     track: result.track,
     message: result.message,
     steps: result.steps,
     reasonCodes: result.reasonCodes,
     actions,
   });
-});
-
-intakeRouter.get("/latest", async (req, res) => {
-  const userId = req.userId!;
-  const rows = await sql`
-    SELECT id, computed_track as track, message, created_at as "createdAt"
-    FROM intake_responses WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 1
-  `;
-
-  const row = rows[0];
-  if (!row) {
-    return res.status(404).json({ error: "no intake found for this user" });
-  }
-  res.json(row);
 });

@@ -60,8 +60,8 @@ export default function ActionDetail() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
         <p className="text-base text-destructive">{error ?? "این اقدام پیدا نشد."}</p>
-        <Link to="/profile" className="text-base text-primary">
-          برگشت به پروفایل
+        <Link to="/" className="text-base text-brand">
+          برگشت به صفحه اصلی
         </Link>
       </div>
     );
@@ -75,7 +75,7 @@ export default function ActionDetail() {
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
       <div className="rounded-xl bg-card p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${category.chipClassName}`}>
             <CategoryIcon size={22} />
           </span>
           <div className="min-w-0 flex-1">
@@ -109,7 +109,7 @@ export default function ActionDetail() {
             <Button
               key={opt.kind}
               variant="outline"
-              className="gap-1.5 rounded-full border-primary text-sm text-primary hover:bg-secondary"
+              className="gap-1.5 rounded-full text-sm"
               disabled={submitting}
               onClick={() => handleReport(opt.kind)}
             >
@@ -126,7 +126,7 @@ export default function ActionDetail() {
           className="mt-3 w-full resize-none rounded-md border border-input bg-background p-3 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         {reply && (
-          <div className="mt-3 rounded-bubble rounded-ee-md bg-secondary px-4 py-3 text-base leading-relaxed">
+          <div className="mt-3 rounded-bubble bg-secondary px-4 py-3 text-base leading-relaxed text-secondary-foreground">
             {reply}
           </div>
         )}
@@ -135,8 +135,8 @@ export default function ActionDetail() {
 
       <Button
         variant="outline"
-        className="gap-2 border-primary text-primary hover:bg-secondary"
-        onClick={() => navigate(`/?actionId=${action.id}&topic=${encodeURIComponent(action.title)}`)}
+        className="gap-2"
+        onClick={() => navigate(`/chat?actionId=${action.id}&topic=${encodeURIComponent(action.title)}`)}
       >
         <ChatRoundDots size={18} />
         سوال دارم، برو چت‌بات

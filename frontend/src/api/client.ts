@@ -9,6 +9,10 @@ import {
   IntentResult,
   OtpRequestResult,
   OtpVerifyResult,
+  PlanDetail,
+  PlanSummary,
+  RefineFeedback,
+  RefineResult,
   ReportKind,
 } from "./types";
 
@@ -80,8 +84,23 @@ export function submitIntake(answers: IntakeAnswers) {
   });
 }
 
-export function getActions() {
-  return request<ActionItem[]>("/actions");
+export function getPlans() {
+  return request<PlanSummary[]>("/plans");
+}
+
+export function getPlan(id: string) {
+  return request<PlanDetail>(`/plans/${id}`);
+}
+
+export function confirmPlan(id: string) {
+  return request<{ id: string; status: string }>(`/plans/${id}/confirm`, { method: "POST" });
+}
+
+export function refinePlan(planId: string, actionId: string, feedback: RefineFeedback) {
+  return request<RefineResult>(`/plans/${planId}/refine`, {
+    method: "POST",
+    body: JSON.stringify({ actionId, feedback }),
+  });
 }
 
 export function getAction(id: string) {

@@ -1,14 +1,14 @@
-import { ChatRoundDots, ChevronLeft, Mic, Send, Sparkles } from "reicon-react";
+import { ChatRoundDots, Mic, Send, Sparkles } from "reicon-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-import { detectIntent, getAction, postChatMessage, submitIntake } from "../api/client";
-import { ActionItem, IntakeAnswers } from "../api/types";
+import { confirmPlan, detectIntent, getAction, postChatMessage, refinePlan, submitIntake } from "../api/client";
+import { ActionItem, IntakeAnswers, RefineFeedback } from "../api/types";
 import { CATEGORY_META } from "../lib/actionMeta";
 import { toPersianDigits } from "../lib/numerals";
 import { answerTopicQuestion } from "../lib/topicFaq";
@@ -92,7 +92,7 @@ function RichText({ text }: { text: string }) {
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-bubble rounded-es-md bg-primary px-5 py-3 text-base leading-relaxed text-primary-foreground">
+      <div className="max-w-[80%] rounded-bubble bg-muted px-5 py-3 text-base leading-relaxed text-foreground">
         {text}
       </div>
     </div>
@@ -102,8 +102,8 @@ function UserBubble({ text }: { text: string }) {
 function GreetingBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-start">
-      <div className="flex max-w-[80%] items-center gap-2.5 rounded-bubble rounded-ee-md bg-secondary px-5 py-3 text-base leading-relaxed text-foreground">
-        <Sparkles size={16} className="shrink-0 text-primary" />
+      <div className="flex max-w-[85%] items-center gap-2.5 rounded-bubble bg-secondary px-5 py-3 text-base leading-relaxed text-secondary-foreground">
+        <Sparkles size={16} className="shrink-0 text-brand" />
         {text}
       </div>
     </div>
@@ -112,10 +112,8 @@ function GreetingBubble({ text }: { text: string }) {
 
 function BotBubble({ text }: { text: string }) {
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[80%] rounded-bubble rounded-ee-md bg-card px-5 py-3 text-base leading-relaxed text-foreground shadow-sm">
-        <RichText text={text} />
-      </div>
+    <div className="max-w-[92%] text-base leading-relaxed text-foreground">
+      <RichText text={text} />
     </div>
   );
 }
@@ -142,12 +140,10 @@ function NumberQuestion({ step, onAnswer }: { step: Extract<StepConfig, { kind: 
         onKeyDown={(e) => {
           if (e.key === "Enter") confirm();
         }}
-        className="h-11 w-28 rounded-xl text-base"
+        className="h-11 w-28 text-base"
       />
       <span className="text-base text-muted-foreground">{step.unit}</span>
-      <Button className="rounded-xl" onClick={confirm}>
-        تایید
-      </Button>
+      <Button onClick={confirm}>تایید</Button>
     </div>
   );
 }
@@ -158,28 +154,76 @@ function echoLabel(step: StepConfig, value: boolean | string | number): string {
   return `${toPersianDigits(String(value))} ${step.unit}`;
 }
 
-function ActionResultCard({ action }: { action: ActionItem }) {
+function ReviewActionCard({
+  planId,
+  action,
+  onRemoved,
+  onUpdated,
+}: {
+  planId: string;
+  action: ActionItem;
+  onRemoved: (id: string, reply: string) => void;
+  onUpdated: (updated: ActionItem, reply: string) => void;
+}) {
   const category = CATEGORY_META[action.category];
   const Icon = category.icon;
+  const [busy, setBusy] = useState<RefineFeedback | null>(null);
+
+  async function handle(feedback: RefineFeedback) {
+    setBusy(feedback);
+    try {
+      const result = await refinePlan(planId, action.id, feedback);
+      if (result.removed) {
+        onRemoved(action.id, result.reply);
+      } else if (result.action) {
+        onUpdated(result.action, result.reply);
+      }
+    } catch {
+      // best-effort; leave card as-is on failure
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
-    <Link
-      to={`/actions/${action.id}`}
-      className="flex items-center gap-3 rounded-xl bg-card p-4 shadow-sm transition-colors hover:bg-muted"
-    >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-        <Icon size={20} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold">{action.title}</p>
-        <p className="mt-0.5 truncate text-sm text-helper-foreground">{category.label}</p>
+    <div className="rounded-xl bg-card p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${category.chipClassName}`}>
+          <Icon size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold">{action.title}</p>
+          <p className="mt-0.5 truncate text-sm text-helper-foreground">{category.label}</p>
+        </div>
       </div>
-      <ChevronLeft size={18} className="shrink-0 text-muted-foreground" />
-    </Link>
+      <p className="mt-2.5 text-sm leading-relaxed text-helper-foreground">{action.summary}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full text-sm"
+          disabled={busy !== null}
+          onClick={() => handle("simplify")}
+        >
+          {busy === "simplify" ? "در حال بررسی..." : "سخته، ساده‌ترش کن"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full text-sm"
+          disabled={busy !== null}
+          onClick={() => handle("remove")}
+        >
+          {busy === "remove" ? "در حال حذف..." : "حذفش کن"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
 export default function Chat() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const topicActionId = searchParams.get("actionId");
   const topicTitle = searchParams.get("topic");
 
@@ -188,7 +232,9 @@ export default function Chat() {
       ? [{ id: 0, role: "bot", text: `داری درباره‌ی «${topicTitle}» سوال می‌پرسی. بپرس تا کمکت کنم.` }]
       : [{ id: 0, role: "bot", text: GREETING }]
   );
-  const [phase, setPhase] = useState<"intent" | "questions" | "submitting" | "done">(topicActionId ? "done" : "intent");
+  const [phase, setPhase] = useState<"intent" | "questions" | "submitting" | "review">(
+    topicActionId ? "review" : "intent"
+  );
   const [answers, setAnswers] = useState<IntakeAnswers>(defaultAnswers);
   const [stepIndex, setStepIndex] = useState(0);
   const [input, setInput] = useState("");
@@ -196,7 +242,8 @@ export default function Chat() {
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prefilledGoal, setPrefilledGoal] = useState<string | null>(null);
-  const [result, setResult] = useState<{ track: string; actions: ActionItem[] } | null>(null);
+  const [plan, setPlan] = useState<{ planId: string; actions: ActionItem[] } | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [topicAction, setTopicAction] = useState<ActionItem | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
@@ -204,7 +251,7 @@ export default function Chat() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [entries, phase, stepIndex, streamingText, thinking, result]);
+  }, [entries, phase, stepIndex, streamingText, thinking, plan]);
 
   useEffect(() => {
     if (!topicActionId) return;
@@ -272,6 +319,18 @@ export default function Chat() {
     await streamBotMessage(reply);
   }
 
+  async function handleReviewNote() {
+    const text = input.trim();
+    if (!text) return;
+    pushEntry("user", text);
+    setInput("");
+    setThinking(true);
+    setThinking(false);
+    await streamBotMessage(
+      "این نکته رو در نظر گرفتم. اگه درباره‌ی یکی از اقدام‌های بالا نکته داری، از دکمه‌های کنار همون اقدام استفاده کن تا دقیق‌تر بررسیش کنم."
+    );
+  }
+
   async function handleAnswer(value: boolean | string | number) {
     const step = STEPS[stepIndex];
     const updated = step.set(answers, value as never);
@@ -291,18 +350,46 @@ export default function Chat() {
     try {
       const result = await submitIntake(updated);
       setThinking(false);
-      await streamBotMessage("بر اساس پاسخ‌هات، این اقدام‌ها رو برات آماده کردم. هر کدوم رو بزن تا جزئیاتش رو ببینی:");
-      setResult({ track: result.track, actions: result.actions });
-      setPhase("done");
+      await streamBotMessage(
+        `تحلیل من انجام شد ✅ این اقدام‌ها رو برای «${result.title}» برات آماده کردم. اگه نکته‌ای داری بگو، وگرنه با دکمه‌ی پایین تایید کن:`
+      );
+      setPlan({ planId: result.planId, actions: result.actions });
+      setPhase("review");
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
       setThinking(false);
     }
   }
 
+  function handleActionRemoved(actionId: string, reply: string) {
+    setPlan((p) => (p ? { ...p, actions: p.actions.filter((a) => a.id !== actionId) } : p));
+    pushEntry("bot", reply);
+  }
+
+  function handleActionUpdated(updated: ActionItem, reply: string) {
+    setPlan((p) => (p ? { ...p, actions: p.actions.map((a) => (a.id === updated.id ? updated : a)) } : p));
+    pushEntry("bot", reply);
+  }
+
+  async function handleConfirmPlan() {
+    if (!plan) return;
+    setConfirming(true);
+    setError(null);
+    try {
+      await confirmPlan(plan.planId);
+      navigate("/");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "خطای ناشناخته");
+    } finally {
+      setConfirming(false);
+    }
+  }
+
   const currentStep = phase === "questions" ? STEPS[stepIndex] : null;
   const progressPercent = (stepIndex / STEPS.length) * 100;
   const showSuggestions = !topicActionId && phase === "intent" && entries.length === 1;
+  const showReviewCards = phase === "review" && plan && !topicActionId;
+  const showTextInput = phase === "intent" || topicActionId || (phase === "review" && !topicActionId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -315,7 +402,7 @@ export default function Chat() {
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {showSuggestions && (
           <div className="flex flex-col items-center gap-4 pb-3 pt-6 text-center">
-            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-primary">
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-brand">
               <ChatRoundDots size={36} />
             </span>
           </div>
@@ -336,7 +423,7 @@ export default function Chat() {
         {showSuggestions && (
           <div className="space-y-4 rounded-xl bg-card p-5 shadow-chat">
             <div className="flex items-center gap-2.5 text-base text-foreground">
-              <Sparkles size={18} className="text-primary" />
+              <Sparkles size={18} className="text-brand" />
               می‌تونی یکی از این‌ها رو انتخاب کنی یا خودت تایپ کنی:
             </div>
             <div className="flex flex-wrap gap-2.5">
@@ -345,7 +432,7 @@ export default function Chat() {
                   key={s}
                   variant="outline"
                   size="sm"
-                  className="h-auto rounded-full border-primary px-4 py-2 text-sm text-primary hover:bg-secondary"
+                  className="h-auto rounded-full px-4 py-2 text-sm"
                   onClick={() => handleSendIntent(s)}
                 >
                   {s}
@@ -390,43 +477,39 @@ export default function Chat() {
         )}
 
         {thinking && (
-          <div className="flex justify-start">
-            <div className="rounded-bubble rounded-ee-md bg-card px-5 py-3.5 shadow-sm">
-              <span className="flex gap-1.5">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" />
-              </span>
-            </div>
+          <div className="flex gap-1.5">
+            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" />
           </div>
         )}
 
         {streamingText !== null && (
           <div className="space-y-2.5">
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-bubble rounded-ee-md bg-card px-5 py-3 text-base leading-relaxed text-foreground shadow-sm">
-                <RichText text={streamingText} />
-                <span className="ms-0.5 inline-block h-4 w-[2px] animate-pulse bg-primary align-middle" />
-              </div>
+            <div className="max-w-[92%] text-base leading-relaxed text-foreground">
+              <RichText text={streamingText} />
+              <span className="ms-0.5 inline-block h-4 w-[2px] animate-pulse bg-foreground align-middle" />
             </div>
-            <div className="flex justify-start">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-full border-primary text-sm text-primary"
-                onClick={() => stopStreamRef.current?.()}
-              >
-                <span className="h-2 w-2 rounded-[2px] bg-primary" />
-                در حال تولید پاسخ... (توقف)
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" className="gap-2 rounded-full text-sm" onClick={() => stopStreamRef.current?.()}>
+              <span className="h-2 w-2 rounded-[2px] bg-foreground" />
+              در حال تولید پاسخ... (توقف)
+            </Button>
           </div>
         )}
 
-        {result && phase === "done" && !topicActionId && (
+        {showReviewCards && (
           <div className="flex flex-col gap-3">
-            {result.actions.map((action) => (
-              <ActionResultCard key={action.id} action={action} />
+            {plan.actions.length === 0 && (
+              <p className="text-sm text-helper-foreground">همه‌ی اقدام‌ها رو حذف کردی؛ حداقل یکی رو نگه دار تا بتونی تایید کنی.</p>
+            )}
+            {plan.actions.map((action) => (
+              <ReviewActionCard
+                key={action.id}
+                planId={plan.planId}
+                action={action}
+                onRemoved={handleActionRemoved}
+                onUpdated={handleActionUpdated}
+              />
             ))}
           </div>
         )}
@@ -435,16 +518,33 @@ export default function Chat() {
         <div ref={bottomRef} />
       </div>
 
-      {(phase === "intent" || topicActionId) && (
+      {showReviewCards && (
+        <div className="bg-background px-5 pb-2">
+          <Button
+            className="w-full"
+            disabled={confirming || plan.actions.length === 0}
+            onClick={handleConfirmPlan}
+          >
+            {confirming ? "در حال ثبت..." : "با این برنامه راضی‌ام، بریم"}
+          </Button>
+        </div>
+      )}
+
+      {showTextInput && (
         <div className="flex items-center gap-2.5 bg-background px-5 py-4">
-          <div className="flex flex-1 items-center gap-2.5 rounded-xl bg-card px-4 py-3 shadow-chat">
+          <div className="flex flex-1 items-center gap-2.5 rounded-full border border-input bg-card px-4 py-3">
             <Input
               value={input}
               disabled={thinking || streamingText !== null}
-              placeholder={topicActionId ? "سوالت رو بپرس..." : "مثلاً: می‌خوام لاغر شم"}
+              placeholder={
+                topicActionId ? "سوالت رو بپرس..." : phase === "review" ? "اگه نکته‌ای داری بگو..." : "مثلاً: می‌خوام لاغر شم"
+              }
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") (topicActionId ? handleTopicQuestion() : handleSendIntent());
+                if (e.key !== "Enter") return;
+                if (topicActionId) handleTopicQuestion();
+                else if (phase === "review") handleReviewNote();
+                else handleSendIntent();
               }}
               className="h-auto border-0 bg-transparent p-0 text-base shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
             />
@@ -452,9 +552,13 @@ export default function Chat() {
           </div>
           <Button
             size="icon"
-            className="h-11 w-11 shrink-0 rounded-full"
+            className="h-11 w-11 shrink-0"
             disabled={thinking || streamingText !== null || !input.trim()}
-            onClick={() => (topicActionId ? handleTopicQuestion() : handleSendIntent())}
+            onClick={() => {
+              if (topicActionId) handleTopicQuestion();
+              else if (phase === "review") handleReviewNote();
+              else handleSendIntent();
+            }}
           >
             <Send size={20} className="-scale-x-100" />
           </Button>
