@@ -11,6 +11,19 @@ export function initDb(): Promise<void> {
         CREATE TABLE IF NOT EXISTS users (
           id TEXT PRIMARY KEY,
           nickname TEXT,
+          phone TEXT UNIQUE,
+          name TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS otp_codes (
+          id TEXT PRIMARY KEY,
+          phone TEXT NOT NULL,
+          code TEXT NOT NULL,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          consumed BOOLEAN NOT NULL DEFAULT false,
+          expires_at TIMESTAMPTZ NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `;
