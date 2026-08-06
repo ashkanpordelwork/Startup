@@ -2,6 +2,7 @@ import { clearToken, getToken } from "../auth/token";
 import {
   ActionItem,
   ActionReportResult,
+  AdaptResult,
   AuthUser,
   ChatMessage,
   IntakeAnswers,
@@ -11,8 +12,6 @@ import {
   OtpVerifyResult,
   PlanDetail,
   PlanSummary,
-  RefineFeedback,
-  RefineResult,
   ReportKind,
 } from "./types";
 
@@ -96,10 +95,10 @@ export function confirmPlan(id: string) {
   return request<{ id: string; status: string }>(`/plans/${id}/confirm`, { method: "POST" });
 }
 
-export function refinePlan(planId: string, actionId: string, feedback: RefineFeedback) {
-  return request<RefineResult>(`/plans/${planId}/refine`, {
+export function adaptPlanAction(planId: string, actionId: string) {
+  return request<AdaptResult>(`/plans/${planId}/adapt`, {
     method: "POST",
-    body: JSON.stringify({ actionId, feedback }),
+    body: JSON.stringify({ actionId }),
   });
 }
 
@@ -123,5 +122,12 @@ export function postChatMessage(role: "user" | "bot", text: string, actionId?: s
   return request<ChatMessage>("/chat/messages", {
     method: "POST",
     body: JSON.stringify({ role, text, actionId }),
+  });
+}
+
+export function askAboutAction(actionId: string, question: string) {
+  return request<{ reply: string }>("/chat/ask", {
+    method: "POST",
+    body: JSON.stringify({ actionId, question }),
   });
 }

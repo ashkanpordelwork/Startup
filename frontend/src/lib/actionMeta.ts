@@ -10,6 +10,5 @@ export const CATEGORY_META: Record<ActionCategory, { label: string; icon: typeof
 
 export const STATUS_META: Record<ActionStatus, { label: string; className: string; textClassName: string }> = {
   in_progress: { label: "در حال انجام", className: "bg-muted text-muted-foreground", textClassName: "text-helper-foreground" },
-  needs_review: { label: "نیاز به بازبینی", className: "bg-amber-100 text-amber-700", textClassName: "text-amber-600" },
   done: { label: "تمام‌شده", className: "bg-emerald-100 text-emerald-700", textClassName: "text-emerald-600" },
 };

@@ -7,11 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-import { confirmPlan, detectIntent, getAction, postChatMessage, refinePlan, submitIntake } from "../api/client";
-import { ActionItem, IntakeAnswers, RefineFeedback } from "../api/types";
+import { adaptPlanAction, askAboutAction, confirmPlan, detectIntent, submitIntake } from "../api/client";
+import { ActionItem, IntakeAnswers } from "../api/types";
 import { CATEGORY_META } from "../lib/actionMeta";
 import { toPersianDigits } from "../lib/numerals";
-import { answerTopicQuestion } from "../lib/topicFaq";
 
 const GREETING = "سلام! چه کمکی از دستم برمیاد؟";
 
@@ -157,31 +156,25 @@ function echoLabel(step: StepConfig, value: boolean | string | number): string {
 function ReviewActionCard({
   planId,
   action,
-  onRemoved,
-  onUpdated,
+  onAdapted,
 }: {
   planId: string;
   action: ActionItem;
-  onRemoved: (id: string, reply: string) => void;
-  onUpdated: (updated: ActionItem, reply: string) => void;
+  onAdapted: (updated: ActionItem, reply: string) => void;
 }) {
   const category = CATEGORY_META[action.category];
   const Icon = category.icon;
-  const [busy, setBusy] = useState<RefineFeedback | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  async function handle(feedback: RefineFeedback) {
-    setBusy(feedback);
+  async function handleAdapt() {
+    setBusy(true);
     try {
-      const result = await refinePlan(planId, action.id, feedback);
-      if (result.removed) {
-        onRemoved(action.id, result.reply);
-      } else if (result.action) {
-        onUpdated(result.action, result.reply);
-      }
+      const result = await adaptPlanAction(planId, action.id);
+      onAdapted(result.action, result.reply);
     } catch {
       // best-effort; leave card as-is on failure
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
@@ -197,24 +190,9 @@ function ReviewActionCard({
         </div>
       </div>
       <p className="mt-2.5 text-sm leading-relaxed text-helper-foreground">{action.summary}</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-full text-sm"
-          disabled={busy !== null}
-          onClick={() => handle("simplify")}
-        >
-          {busy === "simplify" ? "در حال بررسی..." : "سخته، ساده‌ترش کن"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-full text-sm"
-          disabled={busy !== null}
-          onClick={() => handle("remove")}
-        >
-          {busy === "remove" ? "در حال حذف..." : "حذفش کن"}
+      <div className="mt-3">
+        <Button variant="outline" size="sm" className="rounded-full text-sm" disabled={busy} onClick={handleAdapt}>
+          {busy ? "در حال بررسی..." : "سخته، یه قدم کوچیک‌تر بده"}
         </Button>
       </div>
     </div>
@@ -244,7 +222,6 @@ export default function Chat() {
   const [prefilledGoal, setPrefilledGoal] = useState<string | null>(null);
   const [plan, setPlan] = useState<{ planId: string; actions: ActionItem[] } | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [topicAction, setTopicAction] = useState<ActionItem | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
   const stopStreamRef = useRef<(() => void) | null>(null);
@@ -253,18 +230,8 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [entries, phase, stepIndex, streamingText, thinking, plan]);
 
-  useEffect(() => {
-    if (!topicActionId) return;
-    getAction(topicActionId)
-      .then(setTopicAction)
-      .catch(() => setTopicAction(null));
-  }, [topicActionId]);
-
   function pushEntry(role: "user" | "bot", text: string) {
     setEntries((e) => [...e, { id: nextId.current++, role, text }]);
-    if (topicActionId) {
-      postChatMessage(role, text, topicActionId).catch(() => {});
-    }
   }
 
   function streamBotMessage(text: string): Promise<void> {
@@ -310,13 +277,19 @@ export default function Chat() {
 
   async function handleTopicQuestion() {
     const text = input.trim();
-    if (!text || !topicAction) return;
+    if (!text || !topicActionId) return;
     pushEntry("user", text);
     setInput("");
     setThinking(true);
-    const reply = answerTopicQuestion(topicAction.category, text);
-    setThinking(false);
-    await streamBotMessage(reply);
+    setError(null);
+    try {
+      const result = await askAboutAction(topicActionId, text);
+      setThinking(false);
+      await streamBotMessage(result.reply);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "خطای ناشناخته");
+      setThinking(false);
+    }
   }
 
   async function handleReviewNote() {
@@ -327,7 +300,7 @@ export default function Chat() {
     setThinking(true);
     setThinking(false);
     await streamBotMessage(
-      "این نکته رو در نظر گرفتم. اگه درباره‌ی یکی از اقدام‌های بالا نکته داری، از دکمه‌های کنار همون اقدام استفاده کن تا دقیق‌تر بررسیش کنم."
+      "این نکته رو در نظر گرفتم. اگه یکی از اقدام‌های بالا برات سنگینه، از دکمه‌ی کنار همون اقدام بزن تا قدمش رو کوچیک‌تر کنم."
     );
   }
 
@@ -361,12 +334,7 @@ export default function Chat() {
     }
   }
 
-  function handleActionRemoved(actionId: string, reply: string) {
-    setPlan((p) => (p ? { ...p, actions: p.actions.filter((a) => a.id !== actionId) } : p));
-    pushEntry("bot", reply);
-  }
-
-  function handleActionUpdated(updated: ActionItem, reply: string) {
+  function handleActionAdapted(updated: ActionItem, reply: string) {
     setPlan((p) => (p ? { ...p, actions: p.actions.map((a) => (a.id === updated.id ? updated : a)) } : p));
     pushEntry("bot", reply);
   }
@@ -499,17 +467,8 @@ export default function Chat() {
 
         {showReviewCards && (
           <div className="flex flex-col gap-3">
-            {plan.actions.length === 0 && (
-              <p className="text-sm text-helper-foreground">همه‌ی اقدام‌ها رو حذف کردی؛ حداقل یکی رو نگه دار تا بتونی تایید کنی.</p>
-            )}
             {plan.actions.map((action) => (
-              <ReviewActionCard
-                key={action.id}
-                planId={plan.planId}
-                action={action}
-                onRemoved={handleActionRemoved}
-                onUpdated={handleActionUpdated}
-              />
+              <ReviewActionCard key={action.id} planId={plan.planId} action={action} onAdapted={handleActionAdapted} />
             ))}
           </div>
         )}
@@ -520,11 +479,7 @@ export default function Chat() {
 
       {showReviewCards && (
         <div className="bg-background px-5 pb-2">
-          <Button
-            className="w-full"
-            disabled={confirming || plan.actions.length === 0}
-            onClick={handleConfirmPlan}
-          >
+          <Button className="w-full" disabled={confirming} onClick={handleConfirmPlan}>
             {confirming ? "در حال ثبت..." : "با این برنامه راضی‌ام، بریم"}
           </Button>
         </div>

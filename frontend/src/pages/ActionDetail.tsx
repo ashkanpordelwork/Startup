@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUp, ChatRoundDots, CheckCircle, CloseCircle } from "reicon-react";
+import { ArrowUp, ChatRoundDots, CheckCircle, Lifebuoy } from "reicon-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getAction, reportAction } from "../api/client";
 import { ActionItem, ReportKind } from "../api/types";
@@ -8,10 +8,9 @@ import { CATEGORY_META, STATUS_META } from "../lib/actionMeta";
 import { toPersianDigits } from "@/lib/numerals";
 
 const REPORT_OPTIONS: { kind: ReportKind; label: string; icon: typeof CheckCircle }[] = [
-  { kind: "done", label: "تمومش کردم", icon: CheckCircle },
-  { kind: "progress", label: "پیشرفت خوبی داشتم", icon: ArrowUp },
-  { kind: "problem", label: "باهاش مشکل دارم", icon: CloseCircle },
-  { kind: "limitation", label: "محدودیتی دارم", icon: CloseCircle },
+  { kind: "done", label: "انجامش دادم", icon: CheckCircle },
+  { kind: "progress", label: "دارم پیش می‌رم", icon: ArrowUp },
+  { kind: "struggling", label: "سخته، کمکم کن", icon: Lifebuoy },
 ];
 
 export default function ActionDetail() {

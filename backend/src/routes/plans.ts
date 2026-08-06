@@ -1,12 +1,10 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { getRefineReply, getSoftenedVariant, RefineFeedback } from "../actions/refine.js";
+import { getAiProvider } from "../ai/index.js";
 import { ActionCategory } from "../actions/templates.js";
 import { sql } from "../db.js";
 
 export const plansRouter = Router();
-
-const REFINE_FEEDBACKS: RefineFeedback[] = ["simplify", "remove", "keep"];
 
 function toActionDto(row: Record<string, unknown>) {
   return {
@@ -29,7 +27,7 @@ plansRouter.get("/", async (req, res) => {
 
   const counts = await sql`
     SELECT intake_id, COUNT(*) as c FROM action_items
-    WHERE user_id = ${userId} AND status != 'removed'
+    WHERE user_id = ${userId}
     GROUP BY intake_id
   `;
   const countByPlan = new Map(counts.map((c) => [c.intake_id as string, Number(c.c)]));
@@ -59,7 +57,7 @@ plansRouter.get("/:id", async (req, res) => {
 
   const actionRows = await sql`
     SELECT id, category, title, summary, steps, status, created_at
-    FROM action_items WHERE intake_id = ${req.params.id} AND status != 'removed'
+    FROM action_items WHERE intake_id = ${req.params.id}
     ORDER BY created_at ASC
   `;
 
@@ -86,12 +84,16 @@ plansRouter.post("/:id/confirm", async (req, res) => {
   res.json({ id: rows[0].id, status: rows[0].status });
 });
 
-plansRouter.post("/:id/refine", async (req, res) => {
+// عمداً فقط یک مسیر داریم: تطبیق قدم با شرایط کاربر. هیچ گزینه‌ای برای
+// حذف یا رد کردن کامل یک اقدام وجود نداره — قراره زندگی‌ش تغییر کنه، نه
+// اینکه راه فرار از تغییر پیدا کنه؛ کاری که می‌تونیم بکنیم اینه که مسیر
+// رسیدن به همون هدف رو متناسب‌تر کنیم.
+plansRouter.post("/:id/adapt", async (req, res) => {
   const userId = req.userId!;
-  const { actionId, feedback } = req.body as { actionId?: string; feedback?: string };
+  const { actionId } = req.body as { actionId?: string };
 
-  if (!actionId || !feedback || !REFINE_FEEDBACKS.includes(feedback as RefineFeedback)) {
-    return res.status(400).json({ error: "actionId and feedback (simplify|remove|keep) are required" });
+  if (!actionId) {
+    return res.status(400).json({ error: "actionId is required" });
   }
 
   const planRows = await sql`SELECT id FROM intake_responses WHERE id = ${req.params.id} AND user_id = ${userId}`;
@@ -108,28 +110,24 @@ plansRouter.post("/:id/refine", async (req, res) => {
     return res.status(404).json({ error: "action not found" });
   }
 
-  const kind = feedback as RefineFeedback;
-  const reply = getRefineReply(kind, action.title as string);
-  let updatedAction = null;
+  const adapted = await getAiProvider().adaptAction({
+    category: action.category as ActionCategory,
+    title: action.title as string,
+    reason: "too_hard",
+  });
 
-  if (kind === "remove") {
-    await sql`UPDATE action_items SET status = 'removed', updated_at = now() WHERE id = ${actionId}`;
-  } else if (kind === "simplify") {
-    const softened = getSoftenedVariant(action.category as ActionCategory);
-    await sql`
-      UPDATE action_items SET summary = ${softened.summary}, steps = ${JSON.stringify(softened.steps)}, updated_at = now()
-      WHERE id = ${actionId}
-    `;
-    const updatedRows = await sql`
-      SELECT id, category, title, summary, steps, status, created_at FROM action_items WHERE id = ${actionId}
-    `;
-    updatedAction = toActionDto(updatedRows[0]);
-  }
+  await sql`
+    UPDATE action_items SET summary = ${adapted.summary}, steps = ${JSON.stringify(adapted.steps)}, updated_at = now()
+    WHERE id = ${actionId}
+  `;
+  const updatedRows = await sql`
+    SELECT id, category, title, summary, steps, status, created_at FROM action_items WHERE id = ${actionId}
+  `;
 
   await sql`
     INSERT INTO chat_messages (id, user_id, role, text, related_action_id)
-    VALUES (${uuidv4()}, ${userId}, 'bot', ${reply}, ${actionId})
+    VALUES (${uuidv4()}, ${userId}, 'bot', ${adapted.reply}, ${actionId})
   `;
 
-  res.json({ reply, action: updatedAction, removed: kind === "remove" });
+  res.json({ reply: adapted.reply, action: toActionDto(updatedRows[0]) });
 });

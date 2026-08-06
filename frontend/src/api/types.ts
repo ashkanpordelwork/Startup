@@ -77,7 +77,7 @@ export interface PlanDetail {
 }
 
 export type ActionCategory = "diet" | "activity" | "sleep" | "lifestyle";
-export type ActionStatus = "in_progress" | "needs_review" | "done";
+export type ActionStatus = "in_progress" | "done";
 
 export interface ActionItem {
   id: string;
@@ -89,19 +89,17 @@ export interface ActionItem {
   createdAt?: string;
 }
 
-export type ReportKind = "done" | "progress" | "problem" | "limitation";
+export type ReportKind = "done" | "progress" | "struggling";
 
 export interface ActionReportResult {
   reportId: string;
   reply: string;
+  action: ActionItem | null;
 }
 
-export type RefineFeedback = "simplify" | "remove" | "keep";
-
-export interface RefineResult {
+export interface AdaptResult {
   reply: string;
-  action: ActionItem | null;
-  removed: boolean;
+  action: ActionItem;
 }
 
 export interface ChatMessage {

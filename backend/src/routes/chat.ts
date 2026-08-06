@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
+import { getAiProvider } from "../ai/index.js";
+import { ActionCategory } from "../actions/templates.js";
 import { sql } from "../db.js";
 
 export const chatRouter = Router();
@@ -38,4 +40,38 @@ chatRouter.post("/messages", async (req, res) => {
   `;
 
   res.status(201).json({ id, role, text, actionId: actionId ?? null });
+});
+
+chatRouter.post("/ask", async (req, res) => {
+  const userId = req.userId!;
+  const { actionId, question } = req.body as { actionId?: string; question?: string };
+
+  if (!actionId || !question?.trim()) {
+    return res.status(400).json({ error: "actionId and question are required" });
+  }
+
+  const actionRows = await sql`
+    SELECT category, title FROM action_items WHERE id = ${actionId} AND user_id = ${userId}
+  `;
+  const action = actionRows[0];
+  if (!action) {
+    return res.status(404).json({ error: "action not found" });
+  }
+
+  const reply = await getAiProvider().answerQuestion({
+    category: action.category as ActionCategory,
+    actionTitle: action.title as string,
+    question,
+  });
+
+  await sql`
+    INSERT INTO chat_messages (id, user_id, role, text, related_action_id)
+    VALUES (${uuidv4()}, ${userId}, 'user', ${question}, ${actionId})
+  `;
+  await sql`
+    INSERT INTO chat_messages (id, user_id, role, text, related_action_id)
+    VALUES (${uuidv4()}, ${userId}, 'bot', ${reply}, ${actionId})
+  `;
+
+  res.json({ reply });
 });
