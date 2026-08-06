@@ -1,5 +1,5 @@
-import { Send } from "reicon-react";
-import { useEffect, useRef, useState } from "react";
+import { ChatRoundDots, Copy, Mic, Send, Sparkles } from "reicon-react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { toPersianDigits } from "../lib/numerals";
 import { getStoredUserId, setStoredUserId } from "../userId";
 
 const GREETING = "سلام! چه کمکی از دستم برمیاد؟";
+
+const SUGGESTIONS = ["می‌خوام وزن کم کنم", "خوابم زیاد خوب نیست", "این روزا خیلی استرس دارم", "می‌خوام یه عادت جدید بسازم"];
 
 const defaultAnswers: IntakeAnswers = {
   redFlags: {
@@ -67,17 +69,63 @@ const STEPS: StepConfig[] = [
 
 type Entry = { id: number; role: "bot" | "user"; text: string };
 
-function ChatBubble({ role, children }: { role: "bot" | "user"; children: React.ReactNode }) {
-  const isBot = role === "bot";
+/** Renders `**bold**` segments as semibold spans — minimal rich-text support for bot messages. */
+function RichText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
-    <div className={cn("flex", isBot ? "justify-start" : "justify-end")}>
-      <div
-        className={cn(
-          "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-7",
-          isBot ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"
+    <>
+      {parts.map((part, i) => {
+        const match = part.match(/^\*\*([^*]+)\*\*$/);
+        return match ? (
+          <strong key={i} className="font-semibold">
+            {match[1]}
+          </strong>
+        ) : (
+          <Fragment key={i}>{part}</Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+function UserBubble({ text }: { text: string }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[80%] rounded-bubble rounded-es-md bg-primary px-4 py-2.5 text-base leading-[21px] text-primary-foreground">
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function GreetingBubble({ text }: { text: string }) {
+  return (
+    <div className="flex justify-start">
+      <div className="flex max-w-[80%] items-center gap-2 rounded-bubble rounded-ee-md bg-secondary px-4 py-2.5 text-base leading-[21px] text-foreground">
+        <Sparkles size={16} className="shrink-0 text-primary" />
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function BotBubble({ text, onCopy }: { text: string; onCopy?: () => void }) {
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[80%] space-y-1">
+        <div className="rounded-bubble rounded-ee-md bg-card px-4 py-2.5 text-base leading-[21px] text-foreground shadow-sm">
+          <RichText text={text} />
+        </div>
+        {onCopy && (
+          <button
+            type="button"
+            onClick={onCopy}
+            className="flex items-center gap-1 px-1 text-xs text-helper-foreground hover:text-foreground"
+          >
+            <Copy size={13} />
+            کپی
+          </button>
         )}
-      >
-        {children}
       </div>
     </div>
   );
@@ -105,10 +153,10 @@ function NumberQuestion({ step, onAnswer }: { step: Extract<StepConfig, { kind: 
         onKeyDown={(e) => {
           if (e.key === "Enter") confirm();
         }}
-        className="w-24"
+        className="w-24 rounded-xl"
       />
       <span className="text-sm text-muted-foreground">{step.unit}</span>
-      <Button size="sm" onClick={confirm}>
+      <Button size="sm" className="rounded-xl" onClick={confirm}>
         تایید
       </Button>
     </div>
@@ -127,26 +175,46 @@ export default function Chat() {
   const [answers, setAnswers] = useState<IntakeAnswers>(defaultAnswers);
   const [stepIndex, setStepIndex] = useState(0);
   const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [thinking, setThinking] = useState(false);
+  const [streamingText, setStreamingText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prefilledGoal, setPrefilledGoal] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
+  const stopStreamRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [entries, phase, stepIndex]);
+  }, [entries, phase, stepIndex, streamingText, thinking]);
 
   function pushEntry(role: "user" | "bot", text: string) {
     setEntries((e) => [...e, { id: nextId.current++, role, text }]);
   }
 
-  async function handleSendIntent() {
-    const text = input.trim();
+  function streamBotMessage(text: string): Promise<void> {
+    return new Promise((resolve) => {
+      let shown = 0;
+      const finish = () => {
+        clearInterval(timer);
+        setStreamingText(null);
+        pushEntry("bot", text);
+        resolve();
+      };
+      const timer = setInterval(() => {
+        shown = Math.min(text.length, shown + 3);
+        setStreamingText(text.slice(0, shown));
+        if (shown >= text.length) finish();
+      }, 20);
+      stopStreamRef.current = finish;
+    });
+  }
+
+  async function handleSendIntent(overrideText?: string) {
+    const text = (overrideText ?? input).trim();
     if (!text) return;
     pushEntry("user", text);
     setInput("");
-    setBusy(true);
+    setThinking(true);
     setError(null);
     try {
       const result = await detectIntent(text);
@@ -154,13 +222,13 @@ export default function Chat() {
         setAnswers((a) => ({ ...a, goal: { ...a.goal, primaryGoal: result.goal! } }));
         setPrefilledGoal(result.goal);
       }
-      pushEntry("bot", result.reflection);
+      setThinking(false);
+      await streamBotMessage(result.reflection);
       pushEntry("bot", STEPS[0].question);
       setPhase("questions");
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
-    } finally {
-      setBusy(false);
+      setThinking(false);
     }
   }
 
@@ -178,37 +246,78 @@ export default function Chat() {
     }
 
     setPhase("submitting");
-    setBusy(true);
+    setThinking(true);
     setError(null);
     try {
       const result = await submitIntake(getStoredUserId(), updated);
       setStoredUserId(result.userId);
-      pushEntry("bot", result.message);
+      setThinking(false);
+      await streamBotMessage(result.message);
       setPhase("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
-    } finally {
-      setBusy(false);
+      setThinking(false);
     }
+  }
+
+  function handleCopy(text: string) {
+    navigator.clipboard?.writeText(text).catch(() => {});
   }
 
   const currentStep = phase === "questions" ? STEPS[stepIndex] : null;
   const progressPercent = (stepIndex / STEPS.length) * 100;
+  const showSuggestions = phase === "intent" && entries.length === 1;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {(phase === "questions" || phase === "submitting") && (
-        <div className="pb-3">
+        <div className="px-4 pt-3">
           <Progress value={progressPercent} />
         </div>
       )}
 
-      <div className="flex-1 space-y-3 overflow-y-auto">
-        {entries.map((e) => (
-          <ChatBubble key={e.id} role={e.role}>
-            {e.text}
-          </ChatBubble>
-        ))}
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+        {showSuggestions && (
+          <div className="flex flex-col items-center gap-3 pb-2 pt-4 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-primary">
+              <ChatRoundDots size={32} />
+            </span>
+          </div>
+        )}
+
+        {entries.map((e) =>
+          e.role === "bot" ? (
+            e.id === 0 ? (
+              <GreetingBubble key={e.id} text={e.text} />
+            ) : (
+              <BotBubble key={e.id} text={e.text} onCopy={() => handleCopy(e.text)} />
+            )
+          ) : (
+            <UserBubble key={e.id} text={e.text} />
+          )
+        )}
+
+        {showSuggestions && (
+          <div className="space-y-3 rounded-xl bg-card p-4 shadow-chat">
+            <div className="flex items-center gap-2 text-sm text-foreground">
+              <Sparkles size={16} className="text-primary" />
+              می‌تونی یکی از این‌ها رو انتخاب کنی یا خودت تایپ کنی:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTIONS.map((s) => (
+                <Button
+                  key={s}
+                  variant="outline"
+                  size="sm"
+                  className="h-auto rounded-full border-primary px-3 py-1.5 text-xs text-primary hover:bg-secondary"
+                  onClick={() => handleSendIntent(s)}
+                >
+                  {s}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {currentStep && (
           <div className="flex justify-start">
@@ -220,9 +329,9 @@ export default function Chat() {
                 </ToggleGroup>
               )}
               {currentStep.kind === "choice" && currentStep.isGoalField && prefilledGoal && (
-                <p className="text-xs text-muted-foreground">
-                  حدس من: «{currentStep.options.find((o) => o.value === prefilledGoal)?.label}» — اگه درسته همین رو
-                  بزن، وگرنه یکی دیگه رو انتخاب کن.
+                <p className="text-xs text-helper-foreground">
+                  حدس من: <strong className="font-semibold text-foreground">«{currentStep.options.find((o) => o.value === prefilledGoal)?.label}»</strong> — اگه
+                  درسته همین رو بزن، وگرنه یکی دیگه رو انتخاب کن.
                 </p>
               )}
               {currentStep.kind === "choice" && (
@@ -244,27 +353,65 @@ export default function Chat() {
           </div>
         )}
 
-        {busy && (
+        {thinking && (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-muted px-4 py-2.5 text-sm text-muted-foreground">در حال بررسی...</div>
+            <div className="rounded-bubble rounded-ee-md bg-card px-4 py-2.5 shadow-sm">
+              <span className="flex gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+              </span>
+            </div>
           </div>
         )}
+
+        {streamingText !== null && (
+          <div className="space-y-2">
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-bubble rounded-ee-md bg-card px-4 py-2.5 text-base leading-[21px] text-foreground shadow-sm">
+                <RichText text={streamingText} />
+                <span className="ms-0.5 inline-block h-4 w-[2px] animate-pulse bg-primary align-middle" />
+              </div>
+            </div>
+            <div className="flex justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 rounded-full border-primary text-xs text-primary"
+                onClick={() => stopStreamRef.current?.()}
+              >
+                <span className="h-2 w-2 rounded-[2px] bg-primary" />
+                در حال تولید پاسخ... (توقف)
+              </Button>
+            </div>
+          </div>
+        )}
+
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div ref={bottomRef} />
       </div>
 
       {phase === "intent" && (
-        <div className="flex items-center gap-2 border-t pt-3">
-          <Input
-            value={input}
-            disabled={busy}
-            placeholder="مثلاً: می‌خوام لاغر شم"
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSendIntent();
-            }}
-          />
-          <Button size="icon" disabled={busy || !input.trim()} onClick={handleSendIntent}>
+        <div className="flex items-center gap-2 border-t bg-background px-4 py-3">
+          <div className="flex flex-1 items-center gap-2 rounded-xl bg-card px-3 py-2 shadow-chat">
+            <Input
+              value={input}
+              disabled={thinking || streamingText !== null}
+              placeholder="مثلاً: می‌خوام لاغر شم"
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSendIntent();
+              }}
+              className="h-auto border-0 bg-transparent p-0 shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
+            />
+            <Mic size={18} className="shrink-0 text-muted-foreground" />
+          </div>
+          <Button
+            size="icon"
+            className="h-10 w-10 shrink-0 rounded-full"
+            disabled={thinking || streamingText !== null || !input.trim()}
+            onClick={() => handleSendIntent()}
+          >
             <Send size={18} className="-scale-x-100" />
           </Button>
         </div>
