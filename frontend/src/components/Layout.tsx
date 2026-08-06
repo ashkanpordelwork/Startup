@@ -1,5 +1,5 @@
 import { PropsWithChildren } from "react";
-import { ChatRoundDots, ClipboardCheck, ShieldCheck, Sparkles } from "reicon-react";
+import { ChatRoundDots, ClipboardCheck, Sparkles } from "reicon-react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { to: "/dashboard", label: "پیگیری روزانه", icon: ClipboardCheck, end: false },
   { to: "/", label: "چت‌بات", icon: Sparkles, end: true, isMain: true },
-  { to: "/admin", label: "پنل ادمین", icon: ShieldCheck, end: false },
 ];
 
 function BottomNav() {

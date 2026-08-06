@@ -1,11 +1,4 @@
-import {
-  AdminConversation,
-  AdminStats,
-  DailyLogEntry,
-  IntakeAnswers,
-  IntakeResult,
-  IntentResult,
-} from "./types";
+import { DailyLogEntry, IntakeAnswers, IntakeResult, IntentResult } from "./types";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -46,12 +39,4 @@ export function postDailyLog(userId: string, date: string, habitCompleted: boole
 
 export function getDailyLogs(userId: string) {
   return request<DailyLogEntry[]>(`/daily-log/${userId}`);
-}
-
-export function getAdminConversations() {
-  return request<AdminConversation[]>("/admin/conversations");
-}
-
-export function getAdminStats() {
-  return request<AdminStats>("/admin/stats");
 }

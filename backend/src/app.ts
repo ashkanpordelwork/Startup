@@ -1,7 +1,6 @@
 import cors from "cors";
 import express, { NextFunction, Request, Response } from "express";
 import { initDb } from "./db.js";
-import { adminRouter } from "./routes/admin.js";
 import { dailyLogRouter } from "./routes/dailyLog.js";
 import { intakeRouter } from "./routes/intake.js";
 import { intentRouter } from "./routes/intent.js";
@@ -25,4 +24,3 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/intent", intentRouter);
 app.use("/api/intake", requireDb, intakeRouter);
 app.use("/api/daily-log", requireDb, dailyLogRouter);
-app.use("/api/admin", requireDb, adminRouter);
