@@ -40,61 +40,61 @@ export default function Dashboard() {
   const loggedToday = logs.find((l) => l.date === today);
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-      <div className="rounded-xl bg-card p-4 shadow-sm">
-        <h2 className="text-sm font-semibold">پیگیری روزانه</h2>
+    <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
+      <div className="rounded-xl bg-card p-5 shadow-sm">
+        <h2 className="text-lg font-semibold">پیگیری روزانه</h2>
         {loading ? (
-          <p className="mt-3 text-sm text-helper-foreground">در حال بارگذاری...</p>
+          <p className="mt-4 text-base text-helper-foreground">در حال بارگذاری...</p>
         ) : (
           <>
-            <p className="mt-2 text-sm text-helper-foreground">
+            <p className="mt-3 text-base leading-relaxed text-helper-foreground">
               {loggedToday
                 ? `امروز را ${loggedToday.habitCompleted ? "انجام‌شده" : "انجام‌نشده"} ثبت کرده‌اید.`
                 : "آیا امروز عادت مدنظرتون رو انجام دادید؟"}
             </p>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-4 flex gap-3">
               <Button
                 variant="secondary"
-                className="flex-1 gap-1.5"
+                className="flex-1 gap-2"
                 disabled={submitting}
                 onClick={() => markToday(false)}
               >
-                <CloseCircle size={16} />
+                <CloseCircle size={18} />
                 انجام ندادم
               </Button>
-              <Button className="flex-1 gap-1.5" disabled={submitting} onClick={() => markToday(true)}>
-                <CheckCircle size={16} />
+              <Button className="flex-1 gap-2" disabled={submitting} onClick={() => markToday(true)}>
+                <CheckCircle size={18} />
                 انجام دادم
               </Button>
             </div>
           </>
         )}
-        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+        {error && <p className="mt-3 text-base text-destructive">{error}</p>}
       </div>
 
-      <div className="rounded-xl bg-card p-4 shadow-sm">
-        <h2 className="text-sm font-semibold">تاریخچه</h2>
+      <div className="rounded-xl bg-card p-5 shadow-sm">
+        <h2 className="text-lg font-semibold">تاریخچه</h2>
         {logs.length === 0 && !loading && (
-          <p className="mt-2 text-sm text-helper-foreground">هنوز رکوردی ثبت نشده.</p>
+          <p className="mt-3 text-base text-helper-foreground">هنوز رکوردی ثبت نشده.</p>
         )}
-        <ul className="mt-2 flex flex-col gap-2">
+        <ul className="mt-3 flex flex-col gap-2.5">
           {logs.map((l) => (
             <li
               key={l.id}
-              className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 text-base"
             >
-              <span className="flex items-center gap-1.5 text-helper-foreground">
-                <CalendarDays size={16} />
+              <span className="flex items-center gap-2 text-helper-foreground">
+                <CalendarDays size={18} />
                 {toPersianDigits(l.date)}
               </span>
               <span
                 className={
                   l.habitCompleted
-                    ? "flex items-center gap-1 font-medium text-primary"
-                    : "flex items-center gap-1 font-medium text-muted-foreground"
+                    ? "flex items-center gap-1.5 font-medium text-primary"
+                    : "flex items-center gap-1.5 font-medium text-muted-foreground"
                 }
               >
-                {l.habitCompleted ? <CheckCircle size={16} /> : <CloseCircle size={16} />}
+                {l.habitCompleted ? <CheckCircle size={18} /> : <CloseCircle size={18} />}
                 {l.habitCompleted ? "انجام‌شده" : "انجام‌نشده"}
               </span>
             </li>

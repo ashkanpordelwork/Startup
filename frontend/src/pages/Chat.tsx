@@ -101,7 +101,7 @@ function RichText({ text }: { text: string }) {
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-bubble rounded-es-md bg-primary px-4 py-2.5 text-base leading-[21px] text-primary-foreground">
+      <div className="max-w-[80%] rounded-bubble rounded-es-md bg-primary px-5 py-3 text-base leading-relaxed text-primary-foreground">
         {text}
       </div>
     </div>
@@ -111,7 +111,7 @@ function UserBubble({ text }: { text: string }) {
 function GreetingBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-start">
-      <div className="flex max-w-[80%] items-center gap-2 rounded-bubble rounded-ee-md bg-secondary px-4 py-2.5 text-base leading-[21px] text-foreground">
+      <div className="flex max-w-[80%] items-center gap-2.5 rounded-bubble rounded-ee-md bg-secondary px-5 py-3 text-base leading-relaxed text-foreground">
         <Sparkles size={16} className="shrink-0 text-primary" />
         {text}
       </div>
@@ -123,16 +123,16 @@ function BotBubble({ text, onCopy }: { text: string; onCopy?: () => void }) {
   return (
     <div className="flex justify-start">
       <div className="max-w-[80%] space-y-1">
-        <div className="rounded-bubble rounded-ee-md bg-card px-4 py-2.5 text-base leading-[21px] text-foreground shadow-sm">
+        <div className="rounded-bubble rounded-ee-md bg-card px-5 py-3 text-base leading-relaxed text-foreground shadow-sm">
           <RichText text={text} />
         </div>
         {onCopy && (
           <button
             type="button"
             onClick={onCopy}
-            className="flex items-center gap-1 px-1 text-xs text-helper-foreground hover:text-foreground"
+            className="flex items-center gap-1.5 px-1 text-sm text-helper-foreground hover:text-foreground"
           >
-            <Copy size={13} />
+            <Copy size={14} />
             کپی
           </button>
         )}
@@ -151,7 +151,7 @@ function NumberQuestion({ step, onAnswer }: { step: Extract<StepConfig, { kind: 
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <Input
         type="number"
         inputMode="numeric"
@@ -163,10 +163,10 @@ function NumberQuestion({ step, onAnswer }: { step: Extract<StepConfig, { kind: 
         onKeyDown={(e) => {
           if (e.key === "Enter") confirm();
         }}
-        className="w-24 rounded-xl"
+        className="h-11 w-28 rounded-xl text-base"
       />
-      <span className="text-sm text-muted-foreground">{step.unit}</span>
-      <Button size="sm" className="rounded-xl" onClick={confirm}>
+      <span className="text-base text-muted-foreground">{step.unit}</span>
+      <Button className="rounded-xl" onClick={confirm}>
         تایید
       </Button>
     </div>
@@ -181,8 +181,8 @@ function echoLabel(step: StepConfig, value: boolean | string | number): string {
 
 function StepPath({ track, steps }: { track: string; steps: string[] }) {
   return (
-    <div className="space-y-3 rounded-xl bg-card p-4 shadow-chat">
-      <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-primary">
+    <div className="space-y-4 rounded-xl bg-card p-5 shadow-chat">
+      <span className="inline-flex rounded-full bg-secondary px-3.5 py-1.5 text-sm font-semibold text-primary">
         {TRACK_LABELS[track] ?? track}
       </span>
       <Accordion type="single" collapsible defaultValue="step-0" className="w-full">
@@ -190,13 +190,13 @@ function StepPath({ track, steps }: { track: string; steps: string[] }) {
           <AccordionItem key={i} value={`step-${i}`}>
             <AccordionTrigger>
               <span className="flex items-center gap-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                   {toPersianDigits(i + 1)}
                 </span>
                 {STEP_TITLES[i] ?? `مرحله ${toPersianDigits(i + 1)}`}
               </span>
             </AccordionTrigger>
-            <AccordionContent className="ps-8 text-helper-foreground">{text}</AccordionContent>
+            <AccordionContent className="ps-9 text-base leading-relaxed text-helper-foreground">{text}</AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
@@ -307,16 +307,16 @@ export default function Chat() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {(phase === "questions" || phase === "submitting") && (
-        <div className="px-4 pt-3">
+        <div className="px-5 pt-4">
           <Progress value={progressPercent} />
         </div>
       )}
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {showSuggestions && (
-          <div className="flex flex-col items-center gap-3 pb-2 pt-4 text-center">
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-primary">
-              <ChatRoundDots size={32} />
+          <div className="flex flex-col items-center gap-4 pb-3 pt-6 text-center">
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-primary">
+              <ChatRoundDots size={36} />
             </span>
           </div>
         )}
@@ -334,18 +334,18 @@ export default function Chat() {
         )}
 
         {showSuggestions && (
-          <div className="space-y-3 rounded-xl bg-card p-4 shadow-chat">
-            <div className="flex items-center gap-2 text-sm text-foreground">
-              <Sparkles size={16} className="text-primary" />
+          <div className="space-y-4 rounded-xl bg-card p-5 shadow-chat">
+            <div className="flex items-center gap-2.5 text-base text-foreground">
+              <Sparkles size={18} className="text-primary" />
               می‌تونی یکی از این‌ها رو انتخاب کنی یا خودت تایپ کنی:
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {SUGGESTIONS.map((s) => (
                 <Button
                   key={s}
                   variant="outline"
                   size="sm"
-                  className="h-auto rounded-full border-primary px-3 py-1.5 text-xs text-primary hover:bg-secondary"
+                  className="h-auto rounded-full border-primary px-4 py-2 text-sm text-primary hover:bg-secondary"
                   onClick={() => handleSendIntent(s)}
                 >
                   {s}
@@ -357,7 +357,7 @@ export default function Chat() {
 
         {currentStep && (
           <div className="flex justify-start">
-            <div className="max-w-[85%] space-y-2.5">
+            <div className="max-w-[85%] space-y-3">
               {currentStep.kind === "bool" && (
                 <ToggleGroup type="single" value="" onValueChange={(v) => v && handleAnswer(v === "yes")}>
                   <ToggleGroupItem value="yes">بله</ToggleGroupItem>
@@ -365,7 +365,7 @@ export default function Chat() {
                 </ToggleGroup>
               )}
               {currentStep.kind === "choice" && currentStep.isGoalField && prefilledGoal && (
-                <p className="text-xs text-helper-foreground">
+                <p className="text-sm text-helper-foreground">
                   حدس من: <strong className="font-semibold text-foreground">«{currentStep.options.find((o) => o.value === prefilledGoal)?.label}»</strong> — اگه
                   درسته همین رو بزن، وگرنه یکی دیگه رو انتخاب کن.
                 </p>
@@ -391,20 +391,20 @@ export default function Chat() {
 
         {thinking && (
           <div className="flex justify-start">
-            <div className="rounded-bubble rounded-ee-md bg-card px-4 py-2.5 shadow-sm">
-              <span className="flex gap-1">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+            <div className="rounded-bubble rounded-ee-md bg-card px-5 py-3.5 shadow-sm">
+              <span className="flex gap-1.5">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" />
               </span>
             </div>
           </div>
         )}
 
         {streamingText !== null && (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-bubble rounded-ee-md bg-card px-4 py-2.5 text-base leading-[21px] text-foreground shadow-sm">
+              <div className="max-w-[80%] rounded-bubble rounded-ee-md bg-card px-5 py-3 text-base leading-relaxed text-foreground shadow-sm">
                 <RichText text={streamingText} />
                 <span className="ms-0.5 inline-block h-4 w-[2px] animate-pulse bg-primary align-middle" />
               </div>
@@ -413,7 +413,7 @@ export default function Chat() {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-full border-primary text-xs text-primary"
+                className="gap-2 rounded-full border-primary text-sm text-primary"
                 onClick={() => stopStreamRef.current?.()}
               >
                 <span className="h-2 w-2 rounded-[2px] bg-primary" />
@@ -430,8 +430,8 @@ export default function Chat() {
       </div>
 
       {phase === "intent" && (
-        <div className="flex items-center gap-2 bg-background px-4 py-3">
-          <div className="flex flex-1 items-center gap-2 rounded-xl bg-card px-3 py-2 shadow-chat">
+        <div className="flex items-center gap-2.5 bg-background px-5 py-4">
+          <div className="flex flex-1 items-center gap-2.5 rounded-xl bg-card px-4 py-3 shadow-chat">
             <Input
               value={input}
               disabled={thinking || streamingText !== null}
@@ -440,17 +440,17 @@ export default function Chat() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSendIntent();
               }}
-              className="h-auto border-0 bg-transparent p-0 shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
+              className="h-auto border-0 bg-transparent p-0 text-base shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
             />
-            <Mic size={18} className="shrink-0 text-muted-foreground" />
+            <Mic size={20} className="shrink-0 text-muted-foreground" />
           </div>
           <Button
             size="icon"
-            className="h-10 w-10 shrink-0 rounded-full"
+            className="h-11 w-11 shrink-0 rounded-full"
             disabled={thinking || streamingText !== null || !input.trim()}
             onClick={() => handleSendIntent()}
           >
-            <Send size={18} className="-scale-x-100" />
+            <Send size={20} className="-scale-x-100" />
           </Button>
         </div>
       )}

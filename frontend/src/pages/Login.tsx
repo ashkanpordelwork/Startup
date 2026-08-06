@@ -99,23 +99,23 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
 
   return (
     <div className="flex h-screen justify-center bg-muted">
-      <div className="flex h-full w-full max-w-[420px] min-w-0 flex-col items-center justify-center gap-6 bg-background px-6">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-primary">
-          <Sparkles size={30} />
+      <div className="flex h-full w-full max-w-[420px] min-w-0 flex-col items-center justify-center gap-8 bg-background px-7">
+        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-primary">
+          <Sparkles size={36} />
         </span>
 
         {step === "phone" && (
-          <form onSubmit={handleSendOtp} className="flex w-full flex-col gap-4">
+          <form onSubmit={handleSendOtp} className="flex w-full flex-col gap-5">
             <div className="text-center">
-              <h1 className="text-lg font-semibold">ورود به چت‌بات</h1>
-              <p className="mt-1 text-sm text-helper-foreground">شماره موبایلت رو وارد کن تا کد تایید برات ارسال بشه.</p>
+              <h1 className="text-2xl font-semibold">ورود به چت‌بات</h1>
+              <p className="mt-2 text-base text-helper-foreground">شماره موبایلت رو وارد کن تا کد تایید برات ارسال بشه.</p>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone">شماره موبایل</Label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="phone" className="text-base">شماره موبایل</Label>
               <div className="relative">
                 <Iphone
-                  size={18}
-                  className="pointer-events-none absolute inset-y-0 end-3 my-auto text-muted-foreground"
+                  size={19}
+                  className="pointer-events-none absolute inset-y-0 end-3.5 my-auto text-muted-foreground"
                 />
                 <Input
                   id="phone"
@@ -123,7 +123,7 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
                   inputMode="numeric"
                   autoComplete="tel"
                   placeholder="09xxxxxxxxx"
-                  className="pe-9 text-center"
+                  className="h-12 pe-10 text-center text-base"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
@@ -131,26 +131,26 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
               </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={loading || phone.trim().length === 0}>
+            <Button type="submit" size="lg" disabled={loading || phone.trim().length === 0}>
               {loading ? "در حال ارسال..." : "ارسال کد تایید"}
             </Button>
           </form>
         )}
 
         {step === "otp" && (
-          <form onSubmit={handleVerifyOtp} className="flex w-full flex-col gap-4">
+          <form onSubmit={handleVerifyOtp} className="flex w-full flex-col gap-5">
             <div className="text-center">
-              <h1 className="text-lg font-semibold">کد تایید رو وارد کن</h1>
-              <p className="mt-1 text-sm text-helper-foreground">
+              <h1 className="text-2xl font-semibold">کد تایید رو وارد کن</h1>
+              <p className="mt-2 text-base text-helper-foreground">
                 کد ۶ رقمی به شماره‌ی {toPersianDigits(phone)} ارسال شد.
               </p>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="otp">کد تایید</Label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="otp" className="text-base">کد تایید</Label>
               <div className="relative">
                 <LockKeyhole
-                  size={18}
-                  className="pointer-events-none absolute inset-y-0 end-3 my-auto text-muted-foreground"
+                  size={19}
+                  className="pointer-events-none absolute inset-y-0 end-3.5 my-auto text-muted-foreground"
                 />
                 <Input
                   id="otp"
@@ -158,7 +158,7 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
                   inputMode="numeric"
                   maxLength={6}
                   placeholder="------"
-                  className="pe-9 text-center tracking-[0.5em]"
+                  className="h-12 pe-10 text-center text-lg tracking-[0.5em]"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   required
@@ -166,10 +166,10 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
               </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={loading || code.trim().length < 6}>
+            <Button type="submit" size="lg" disabled={loading || code.trim().length < 6}>
               {loading ? "در حال بررسی..." : "تایید"}
             </Button>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-base">
               <button type="button" className="text-helper-foreground" onClick={() => setStep("phone")}>
                 تغییر شماره
               </button>
@@ -186,20 +186,20 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
         )}
 
         {step === "name" && (
-          <form onSubmit={handleSubmitName} className="flex w-full flex-col gap-4">
+          <form onSubmit={handleSubmitName} className="flex w-full flex-col gap-5">
             <div className="text-center">
-              <h1 className="text-lg font-semibold">خوش اومدی{user?.name ? "" : "!"}</h1>
-              <p className="mt-1 text-sm text-helper-foreground">اسمت رو بگو تا بتونیم صدات کنیم.</p>
+              <h1 className="text-2xl font-semibold">خوش اومدی{user?.name ? "" : "!"}</h1>
+              <p className="mt-2 text-base text-helper-foreground">اسمت رو بگو تا بتونیم صدات کنیم.</p>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name">اسم</Label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="name" className="text-base">اسم</Label>
               <div className="relative">
-                <User size={18} className="pointer-events-none absolute inset-y-0 end-3 my-auto text-muted-foreground" />
+                <User size={19} className="pointer-events-none absolute inset-y-0 end-3.5 my-auto text-muted-foreground" />
                 <Input
                   id="name"
                   autoComplete="name"
                   placeholder="مثلاً: سارا"
-                  className="pe-9 text-center"
+                  className="h-12 pe-10 text-center text-base"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -207,7 +207,7 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
               </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={loading || name.trim().length === 0}>
+            <Button type="submit" size="lg" disabled={loading || name.trim().length === 0}>
               {loading ? "در حال ذخیره..." : "شروع کن"}
             </Button>
           </form>

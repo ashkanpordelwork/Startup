@@ -99,6 +99,11 @@
   }
 }
 
+html {
+  font-size: 18px;
+}
+
 body {
   @apply bg-background text-foreground font-sans;
+  line-height: 1.6;
 }
