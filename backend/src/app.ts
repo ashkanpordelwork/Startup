@@ -2,8 +2,9 @@ import cors from "cors";
 import express, { NextFunction, Request, Response } from "express";
 import { initDb } from "./db.js";
 import { requireAuth } from "./middleware/requireAuth.js";
+import { actionsRouter } from "./routes/actions.js";
 import { authRouter } from "./routes/auth.js";
-import { dailyLogRouter } from "./routes/dailyLog.js";
+import { chatRouter } from "./routes/chat.js";
 import { intakeRouter } from "./routes/intake.js";
 import { intentRouter } from "./routes/intent.js";
 
@@ -26,4 +27,5 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/intent", intentRouter);
 app.use("/api/auth", requireDb, authRouter);
 app.use("/api/intake", requireDb, requireAuth, intakeRouter);
-app.use("/api/daily-log", requireDb, requireAuth, dailyLogRouter);
+app.use("/api/actions", requireDb, requireAuth, actionsRouter);
+app.use("/api/chat", requireDb, requireAuth, chatRouter);

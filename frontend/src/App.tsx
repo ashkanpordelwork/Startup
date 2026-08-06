@@ -2,9 +2,11 @@ import { Sparkles } from "reicon-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { HashRouter } from "react-router-dom";
 import Layout from "./components/Layout";
+import ActionDetail from "./pages/ActionDetail";
 import Chat from "./pages/Chat";
-import Dashboard from "./pages/Dashboard";
+import ChatArchive from "./pages/ChatArchive";
 import Login from "./pages/Login";
+import Profile from "./pages/Profile";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 
 function LoadingScreen() {
@@ -36,7 +38,9 @@ function Gate() {
     <Layout>
       <Routes>
         <Route path="/" element={<Chat />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/actions/:id" element={<ActionDetail />} />
+        <Route path="/archive" element={<ChatArchive />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

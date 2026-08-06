@@ -1,0 +1,107 @@
+import { Router } from "express";
+import { v4 as uuidv4 } from "uuid";
+import { getReportReply, ReportKind } from "../actions/reportReplies.js";
+import { sql } from "../db.js";
+
+export const actionsRouter = Router();
+
+const REPORT_KINDS: ReportKind[] = ["done", "progress", "problem", "limitation"];
+
+function toActionDto(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    category: row.category,
+    title: row.title,
+    summary: row.summary,
+    steps: JSON.parse(row.steps as string),
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+actionsRouter.get("/", async (req, res) => {
+  const userId = req.userId!;
+
+  const latestIntake = await sql`
+    SELECT id FROM intake_responses WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 1
+  `;
+  if (latestIntake.length === 0) {
+    return res.json([]);
+  }
+
+  const rows = await sql`
+    SELECT id, category, title, summary, steps, status, created_at
+    FROM action_items WHERE intake_id = ${latestIntake[0].id} ORDER BY created_at ASC
+  `;
+  res.json(rows.map(toActionDto));
+});
+
+actionsRouter.get("/:id", async (req, res) => {
+  const userId = req.userId!;
+  const rows = await sql`
+    SELECT id, category, title, summary, steps, status, created_at
+    FROM action_items WHERE id = ${req.params.id} AND user_id = ${userId}
+  `;
+  const row = rows[0];
+  if (!row) {
+    return res.status(404).json({ error: "action not found" });
+  }
+  res.json(toActionDto(row));
+});
+
+actionsRouter.post("/:id/report", async (req, res) => {
+  const userId = req.userId!;
+  const { kind, note } = req.body as { kind?: string; note?: string };
+
+  if (!kind || !REPORT_KINDS.includes(kind as ReportKind)) {
+    return res.status(400).json({ error: "kind must be one of: " + REPORT_KINDS.join(", ") });
+  }
+
+  const actionRows = await sql`SELECT id, title FROM action_items WHERE id = ${req.params.id} AND user_id = ${userId}`;
+  const action = actionRows[0];
+  if (!action) {
+    return res.status(404).json({ error: "action not found" });
+  }
+
+  const reply = getReportReply(kind as ReportKind);
+  const reportId = uuidv4();
+
+  await sql`
+    INSERT INTO action_reports (id, action_id, user_id, kind, note, reply)
+    VALUES (${reportId}, ${req.params.id}, ${userId}, ${kind}, ${note ?? null}, ${reply})
+  `;
+
+  if (kind === "done") {
+    await sql`UPDATE action_items SET status = 'done', updated_at = now() WHERE id = ${req.params.id}`;
+  } else if (kind === "problem" || kind === "limitation") {
+    await sql`UPDATE action_items SET status = 'needs_review', updated_at = now() WHERE id = ${req.params.id}`;
+  }
+
+  const userMessageId = uuidv4();
+  const botMessageId = uuidv4();
+  const userText = note ? `درباره‌ی «${action.title}»: ${note}` : `درباره‌ی «${action.title}»: ${kindLabel(kind as ReportKind)}`;
+
+  await sql`
+    INSERT INTO chat_messages (id, user_id, role, text, related_action_id)
+    VALUES (${userMessageId}, ${userId}, 'user', ${userText}, ${req.params.id})
+  `;
+  await sql`
+    INSERT INTO chat_messages (id, user_id, role, text, related_action_id)
+    VALUES (${botMessageId}, ${userId}, 'bot', ${reply}, ${req.params.id})
+  `;
+
+  res.status(201).json({ reportId, reply });
+});
+
+function kindLabel(kind: ReportKind): string {
+  switch (kind) {
+    case "done":
+      return "تمومش کردم";
+    case "progress":
+      return "پیشرفت خوبی داشتم";
+    case "problem":
+      return "باهاش مشکل دارم";
+    case "limitation":
+      return "محدودیتی دارم";
+  }
+}

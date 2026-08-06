@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
+import { getActionTemplates } from "../actions/templates.js";
 import { sql } from "../db.js";
 import { computeTrack } from "../triage/rules.js";
 import { IntakeAnswers } from "../triage/types.js";
@@ -22,6 +23,24 @@ intakeRouter.post("/", async (req, res) => {
     VALUES (${intakeId}, ${userId}, ${JSON.stringify(answers)}, ${result.track}, ${result.message})
   `;
 
+  const templates = getActionTemplates(result.track);
+  const actions = [];
+  for (const template of templates) {
+    const actionId = uuidv4();
+    await sql`
+      INSERT INTO action_items (id, user_id, intake_id, category, title, summary, steps)
+      VALUES (${actionId}, ${userId}, ${intakeId}, ${template.category}, ${template.title}, ${template.summary}, ${JSON.stringify(template.steps)})
+    `;
+    actions.push({
+      id: actionId,
+      category: template.category,
+      title: template.title,
+      summary: template.summary,
+      steps: template.steps,
+      status: "in_progress" as const,
+    });
+  }
+
   res.status(201).json({
     userId,
     intakeId,
@@ -29,6 +48,7 @@ intakeRouter.post("/", async (req, res) => {
     message: result.message,
     steps: result.steps,
     reasonCodes: result.reasonCodes,
+    actions,
   });
 });
 

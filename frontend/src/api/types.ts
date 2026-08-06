@@ -52,13 +52,34 @@ export interface IntakeResult {
   message: string;
   steps: string[];
   reasonCodes: string[];
+  actions: ActionItem[];
 }
 
-export interface DailyLogEntry {
+export type ActionCategory = "diet" | "activity" | "sleep" | "lifestyle";
+export type ActionStatus = "in_progress" | "needs_review" | "done";
+
+export interface ActionItem {
   id: string;
-  date: string;
-  habitCompleted: boolean;
-  note: string | null;
+  category: ActionCategory;
+  title: string;
+  summary: string;
+  steps: string[];
+  status: ActionStatus;
+  createdAt?: string;
+}
+
+export type ReportKind = "done" | "progress" | "problem" | "limitation";
+
+export interface ActionReportResult {
+  reportId: string;
+  reply: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "bot";
+  text: string;
+  actionId: string | null;
   createdAt: string;
 }
 

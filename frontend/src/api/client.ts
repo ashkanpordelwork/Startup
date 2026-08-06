@@ -1,12 +1,15 @@
 import { clearToken, getToken } from "../auth/token";
 import {
+  ActionItem,
+  ActionReportResult,
   AuthUser,
-  DailyLogEntry,
+  ChatMessage,
   IntakeAnswers,
   IntakeResult,
   IntentResult,
   OtpRequestResult,
   OtpVerifyResult,
+  ReportKind,
 } from "./types";
 
 class ApiError extends Error {
@@ -77,17 +80,29 @@ export function submitIntake(answers: IntakeAnswers) {
   });
 }
 
-export function getLatestIntake() {
-  return request<{ track: string; message: string; createdAt: string }>("/intake/latest");
+export function getActions() {
+  return request<ActionItem[]>("/actions");
 }
 
-export function postDailyLog(date: string, habitCompleted: boolean) {
-  return request<DailyLogEntry>("/daily-log", {
+export function getAction(id: string) {
+  return request<ActionItem>(`/actions/${id}`);
+}
+
+export function reportAction(id: string, kind: ReportKind, note?: string) {
+  return request<ActionReportResult>(`/actions/${id}/report`, {
     method: "POST",
-    body: JSON.stringify({ date, habitCompleted }),
+    body: JSON.stringify({ kind, note }),
   });
 }
 
-export function getDailyLogs() {
-  return request<DailyLogEntry[]>("/daily-log");
+export function getChatMessages(actionId?: string) {
+  const query = actionId ? `?actionId=${encodeURIComponent(actionId)}` : "";
+  return request<ChatMessage[]>(`/chat/messages${query}`);
+}
+
+export function postChatMessage(role: "user" | "bot", text: string, actionId?: string) {
+  return request<ChatMessage>("/chat/messages", {
+    method: "POST",
+    body: JSON.stringify({ role, text, actionId }),
+  });
 }

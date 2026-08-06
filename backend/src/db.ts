@@ -38,12 +38,37 @@ export function initDb(): Promise<void> {
         )
       `;
       await sql`
-        CREATE TABLE IF NOT EXISTS daily_logs (
+        CREATE TABLE IF NOT EXISTS action_items (
           id TEXT PRIMARY KEY,
           user_id TEXT NOT NULL REFERENCES users(id),
-          log_date TEXT NOT NULL,
-          habit_completed BOOLEAN NOT NULL,
+          intake_id TEXT NOT NULL REFERENCES intake_responses(id),
+          category TEXT NOT NULL,
+          title TEXT NOT NULL,
+          summary TEXT NOT NULL,
+          steps TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'in_progress',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS action_reports (
+          id TEXT PRIMARY KEY,
+          action_id TEXT NOT NULL REFERENCES action_items(id),
+          user_id TEXT NOT NULL REFERENCES users(id),
+          kind TEXT NOT NULL,
           note TEXT,
+          reply TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS chat_messages (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES users(id),
+          role TEXT NOT NULL,
+          text TEXT NOT NULL,
+          related_action_id TEXT REFERENCES action_items(id),
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `;
