@@ -109,10 +109,10 @@ export default function ActionDetail() {
             <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}>
               {status.label}
             </span>
-            <h1 className="mt-2 text-xl font-semibold leading-snug">{action.title}</h1>
+            <h1 className="mt-2 text-lg font-semibold leading-snug">{action.title}</h1>
           </div>
         </div>
-        <p className="mt-3 text-base leading-relaxed text-helper-foreground transition-opacity duration-300">
+        <p className="mt-3 text-sm leading-relaxed text-helper-foreground transition-opacity duration-300">
           {action.summary}
         </p>
       </div>
@@ -123,21 +123,21 @@ export default function ActionDetail() {
         }`}
         style={{ animationDelay: "80ms" }}
       >
-        <h2 className="text-base font-semibold">قدم‌های عملی</h2>
+        <h2 className="text-sm font-semibold">قدم‌های عملی</h2>
         <ol className="mt-3 flex flex-col gap-3">
           {action.steps.map((step, i) => (
             <li key={`${step}-${i}`} className="flex animate-fade-in-up items-start gap-3" style={{ animationDelay: `${i * 60}ms` }}>
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                 {toPersianDigits(i + 1)}
               </span>
-              <span className="text-base leading-relaxed">{step}</span>
+              <span className="text-sm leading-relaxed">{step}</span>
             </li>
           ))}
         </ol>
       </div>
 
       <div className="animate-fade-in-up rounded-xl bg-card p-5 shadow-sm" style={{ animationDelay: "140ms" }}>
-        <h2 className="text-base font-semibold">وضعیتت با این اقدام چطوره؟</h2>
+        <h2 className="text-sm font-semibold">وضعیتت با این اقدام چطوره؟</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {REPORT_OPTIONS.map((opt) => (
             <Button
@@ -161,14 +161,14 @@ export default function ActionDetail() {
           onChange={(e) => setNote(e.target.value)}
           placeholder="اگه توضیح بیشتری داری، اینجا بنویس (اختیاری)..."
           rows={3}
-          className="mt-3 w-full resize-none rounded-md border border-input bg-background p-3 text-base shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mt-3 w-full resize-none rounded-md border border-input bg-background p-3 text-sm shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         {reply && (
-          <div className="mt-3 animate-fade-in-up rounded-bubble bg-secondary px-4 py-3 text-base leading-relaxed text-secondary-foreground">
+          <div className="mt-3 animate-fade-in-up rounded-bubble bg-secondary px-4 py-3 text-sm leading-relaxed text-secondary-foreground">
             {reply}
           </div>
         )}
-        {error && <p className="mt-2 text-base text-destructive">{error}</p>}
+        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
       </div>
 
       <Button

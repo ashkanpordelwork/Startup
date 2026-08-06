@@ -64,17 +64,17 @@ export default function Home() {
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
       <div className="animate-fade-in-up rounded-xl bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-semibold">سلام {user?.name} 👋</h2>
-        <p className="mt-2 text-base leading-relaxed text-helper-foreground">
+        <h2 className="text-base font-semibold">سلام {user?.name} 👋</h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-helper-foreground">
           این‌جا برنامه‌هایی که با چت‌بات ساختی رو می‌بینی. هر وقت خواستی می‌تونی برنامه‌ی جدید هم بسازی.
         </p>
       </div>
 
-      {error && <p className="px-1 text-base text-destructive">{error}</p>}
+      {error && <p className="px-1 text-sm text-destructive">{error}</p>}
 
       <Link
         to="/chat"
-        className="flex animate-fade-in-up items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-base font-medium text-primary-foreground transition-transform duration-150 active:scale-[0.97]"
+        className="flex animate-fade-in-up items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform duration-150 active:scale-[0.97]"
         style={{ animationDelay: "60ms" }}
       >
         <Plus size={18} />
