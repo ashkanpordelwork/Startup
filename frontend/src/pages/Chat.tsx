@@ -1,6 +1,7 @@
 import { ChatRoundDots, Copy, Mic, Send, Sparkles } from "reicon-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +16,16 @@ import { getStoredUserId, setStoredUserId } from "../userId";
 const GREETING = "سلام! چه کمکی از دستم برمیاد؟";
 
 const SUGGESTIONS = ["می‌خوام وزن کم کنم", "خوابم زیاد خوب نیست", "این روزا خیلی استرس دارم", "می‌خوام یه عادت جدید بسازم"];
+
+const TRACK_LABELS: Record<string, string> = {
+  TRACK_0_RED_FLAG: "مسیر احتیاط (نیاز به هماهنگی با پزشک)",
+  TRACK_1_SLEEP_STRESS: "مسیر خواب و استرس",
+  TRACK_2_DIET_HISTORY: "مسیر پایدارسازی عادت غذایی",
+  TRACK_3_MOBILITY: "مسیر کم‌ضربه",
+  TRACK_4_BASELINE: "مسیر پایه‌ی استاندارد",
+};
+
+const STEP_TITLES = ["چی متوجه شدیم", "چرا مسیر تند ریسک داره", "پیشنهاد ایمن ما"];
 
 const defaultAnswers: IntakeAnswers = {
   redFlags: {
@@ -169,6 +180,31 @@ function echoLabel(step: StepConfig, value: boolean | string | number): string {
   return `${toPersianDigits(String(value))} ${step.unit}`;
 }
 
+function StepPath({ track, steps }: { track: string; steps: string[] }) {
+  return (
+    <div className="space-y-3 rounded-xl bg-card p-4 shadow-chat">
+      <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-primary">
+        {TRACK_LABELS[track] ?? track}
+      </span>
+      <Accordion type="single" collapsible defaultValue="step-0" className="w-full">
+        {steps.map((text, i) => (
+          <AccordionItem key={i} value={`step-${i}`}>
+            <AccordionTrigger>
+              <span className="flex items-center gap-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                  {toPersianDigits(i + 1)}
+                </span>
+                {STEP_TITLES[i] ?? `مرحله ${toPersianDigits(i + 1)}`}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="ps-8 text-helper-foreground">{text}</AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </div>
+  );
+}
+
 export default function Chat() {
   const [entries, setEntries] = useState<Entry[]>([{ id: 0, role: "bot", text: GREETING }]);
   const [phase, setPhase] = useState<"intent" | "questions" | "submitting" | "done">("intent");
@@ -179,13 +215,14 @@ export default function Chat() {
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prefilledGoal, setPrefilledGoal] = useState<string | null>(null);
+  const [result, setResult] = useState<{ track: string; steps: string[] } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
   const stopStreamRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [entries, phase, stepIndex, streamingText, thinking]);
+  }, [entries, phase, stepIndex, streamingText, thinking, result]);
 
   function pushEntry(role: "user" | "bot", text: string) {
     setEntries((e) => [...e, { id: nextId.current++, role, text }]);
@@ -252,7 +289,8 @@ export default function Chat() {
       const result = await submitIntake(getStoredUserId(), updated);
       setStoredUserId(result.userId);
       setThinking(false);
-      await streamBotMessage(result.message);
+      await streamBotMessage("بر اساس پاسخ‌هات، این مسیر رو برات آماده کردم. روی هر مرحله بزن تا جزئیاتش رو ببینی:");
+      setResult({ track: result.track, steps: result.steps });
       setPhase("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
@@ -386,6 +424,8 @@ export default function Chat() {
             </div>
           </div>
         )}
+
+        {result && phase === "done" && <StepPath track={result.track} steps={result.steps} />}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div ref={bottomRef} />

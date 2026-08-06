@@ -50,6 +50,7 @@ export interface IntakeResult {
   intakeId: string;
   track: string;
   message: string;
+  steps: string[];
   reasonCodes: string[];
 }
 

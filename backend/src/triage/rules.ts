@@ -1,5 +1,5 @@
 import { IntakeAnswers, Track, TrackResult } from "./types.js";
-import { getTemplate } from "./templates.js";
+import { getTemplate, getTemplateSteps } from "./templates.js";
 
 function hasRedFlag(a: IntakeAnswers): boolean {
   const rf = a.redFlags;
@@ -37,31 +37,29 @@ function hasMobilityLimitation(a: IntakeAnswers): boolean {
   return a.activity.hasInjuryOrMobilityLimitation;
 }
 
-export function computeTrack(answers: IntakeAnswers): TrackResult {
-  const reasonCodes: string[] = [];
+function buildResult(track: Track, reasonCodes: string[]): TrackResult {
+  const { reflection, risk, alternative } = getTemplateSteps(track);
+  return { track, message: getTemplate(track), steps: [reflection, risk, alternative], reasonCodes };
+}
 
+export function computeTrack(answers: IntakeAnswers): TrackResult {
   if (hasRedFlag(answers)) {
-    reasonCodes.push("red_flag_present");
-    return { track: Track.TRACK_0_RED_FLAG, message: getTemplate(Track.TRACK_0_RED_FLAG), reasonCodes };
+    return buildResult(Track.TRACK_0_RED_FLAG, ["red_flag_present"]);
   }
 
   const poorSleep = hasPoorSleep(answers);
   const highStress = hasHighStress(answers);
   if (poorSleep && highStress) {
-    reasonCodes.push("poor_sleep", "high_stress");
-    return { track: Track.TRACK_1_SLEEP_STRESS, message: getTemplate(Track.TRACK_1_SLEEP_STRESS), reasonCodes };
+    return buildResult(Track.TRACK_1_SLEEP_STRESS, ["poor_sleep", "high_stress"]);
   }
 
   if (hasYoyoOrRestrictiveHistory(answers)) {
-    reasonCodes.push("yoyo_diet_history");
-    return { track: Track.TRACK_2_DIET_HISTORY, message: getTemplate(Track.TRACK_2_DIET_HISTORY), reasonCodes };
+    return buildResult(Track.TRACK_2_DIET_HISTORY, ["yoyo_diet_history"]);
   }
 
   if (hasMobilityLimitation(answers)) {
-    reasonCodes.push("mobility_limitation");
-    return { track: Track.TRACK_3_MOBILITY, message: getTemplate(Track.TRACK_3_MOBILITY), reasonCodes };
+    return buildResult(Track.TRACK_3_MOBILITY, ["mobility_limitation"]);
   }
 
-  reasonCodes.push("baseline");
-  return { track: Track.TRACK_4_BASELINE, message: getTemplate(Track.TRACK_4_BASELINE), reasonCodes };
+  return buildResult(Track.TRACK_4_BASELINE, ["baseline"]);
 }

@@ -131,4 +131,29 @@ describe("computeTrack", () => {
       expect(result.message.length).toBeGreaterThan(10);
     }
   });
+
+  it("every track returns exactly 3 non-empty steps (reflection, risk, alternative)", () => {
+    const tracks: Track[] = [
+      Track.TRACK_0_RED_FLAG,
+      Track.TRACK_1_SLEEP_STRESS,
+      Track.TRACK_2_DIET_HISTORY,
+      Track.TRACK_3_MOBILITY,
+      Track.TRACK_4_BASELINE,
+    ];
+    for (const t of tracks) {
+      const a = baseAnswers();
+      if (t === Track.TRACK_0_RED_FLAG) a.redFlags.isPregnant = true;
+      if (t === Track.TRACK_1_SLEEP_STRESS) {
+        a.sleep.avgSleepHours = 4;
+        a.stress.stressLevel = "high";
+      }
+      if (t === Track.TRACK_2_DIET_HISTORY) a.dietHistory.hasYoyoWeightHistory = true;
+      if (t === Track.TRACK_3_MOBILITY) a.activity.hasInjuryOrMobilityLimitation = true;
+      const result = computeTrack(a);
+      expect(result.steps).toHaveLength(3);
+      for (const step of result.steps) {
+        expect(step.length).toBeGreaterThan(5);
+      }
+    }
+  });
 });

@@ -62,5 +62,6 @@ export interface IntakeAnswers {
 export interface TrackResult {
   track: Track;
   message: string;
+  steps: string[];
   reasonCodes: string[];
 }

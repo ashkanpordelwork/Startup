@@ -33,6 +33,7 @@ intakeRouter.post("/", async (req, res) => {
     intakeId,
     track: result.track,
     message: result.message,
+    steps: result.steps,
     reasonCodes: result.reasonCodes,
   });
 });
