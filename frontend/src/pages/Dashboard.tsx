@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, CheckCircle, CloseCircle, Sparkles } from "reicon-react";
-import { Link } from "react-router-dom";
+import { CalendarDays, CheckCircle, CloseCircle } from "reicon-react";
 import { getDailyLogs, postDailyLog } from "../api/client";
 import { DailyLogEntry } from "../api/types";
-import { getStoredUserId } from "../userId";
 import { Button } from "@/components/ui/button";
 import { toPersianDigits } from "@/lib/numerals";
 
@@ -12,52 +10,30 @@ function todayISO(): string {
 }
 
 export default function Dashboard() {
-  const userId = getStoredUserId();
   const [logs, setLogs] = useState<DailyLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-    getDailyLogs(userId)
+    getDailyLogs()
       .then(setLogs)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, []);
 
   async function markToday(completed: boolean) {
-    if (!userId) return;
     setSubmitting(true);
     setError(null);
     try {
-      await postDailyLog(userId, todayISO(), completed);
-      const updated = await getDailyLogs(userId);
+      await postDailyLog(todayISO(), completed);
+      const updated = await getDailyLogs();
       setLogs(updated);
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (!userId) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-primary">
-          <Sparkles size={26} />
-        </span>
-        <p className="text-sm text-helper-foreground">
-          ابتدا باید پرسش‌نامه را در چت‌بات تکمیل کنید تا بتوانید عادت روزانه‌تان را پیگیری کنید.
-        </p>
-        <Button asChild>
-          <Link to="/">رفتن به چت‌بات</Link>
-        </Button>
-      </div>
-    );
   }
 
   const today = todayISO();

@@ -1,15 +1,66 @@
-import { DailyLogEntry, IntakeAnswers, IntakeResult, IntentResult } from "./types";
+import { clearToken, getToken } from "../auth/token";
+import {
+  AuthUser,
+  DailyLogEntry,
+  IntakeAnswers,
+  IntakeResult,
+  IntentResult,
+  OtpRequestResult,
+  OtpVerifyResult,
+} from "./types";
+
+class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getToken();
   const res = await fetch(`/api${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     ...options,
   });
+
+  if (res.status === 401) {
+    clearToken();
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `Request failed: ${res.status}`);
+    throw new ApiError(body.error ?? `Request failed: ${res.status}`, res.status);
   }
   return res.json();
+}
+
+export function requestOtp(phone: string) {
+  return request<OtpRequestResult>("/auth/otp/request", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export function verifyOtp(phone: string, code: string) {
+  return request<OtpVerifyResult>("/auth/otp/verify", {
+    method: "POST",
+    body: JSON.stringify({ phone, code }),
+  });
+}
+
+export function completeProfile(name: string) {
+  return request<AuthUser>("/auth/complete-profile", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function getMe() {
+  return request<AuthUser>("/auth/me");
 }
 
 export function detectIntent(text: string) {
@@ -19,24 +70,24 @@ export function detectIntent(text: string) {
   });
 }
 
-export function submitIntake(userId: string | null, answers: IntakeAnswers) {
+export function submitIntake(answers: IntakeAnswers) {
   return request<IntakeResult>("/intake", {
     method: "POST",
-    body: JSON.stringify({ userId, answers }),
+    body: JSON.stringify({ answers }),
   });
 }
 
-export function getLatestIntake(userId: string) {
-  return request<{ track: string; message: string; createdAt: string }>(`/intake/${userId}`);
+export function getLatestIntake() {
+  return request<{ track: string; message: string; createdAt: string }>("/intake/latest");
 }
 
-export function postDailyLog(userId: string, date: string, habitCompleted: boolean) {
+export function postDailyLog(date: string, habitCompleted: boolean) {
   return request<DailyLogEntry>("/daily-log", {
     method: "POST",
-    body: JSON.stringify({ userId, date, habitCompleted }),
+    body: JSON.stringify({ date, habitCompleted }),
   });
 }
 
-export function getDailyLogs(userId: string) {
-  return request<DailyLogEntry[]>(`/daily-log/${userId}`);
+export function getDailyLogs() {
+  return request<DailyLogEntry[]>("/daily-log");
 }

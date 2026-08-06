@@ -67,3 +67,22 @@ export interface IntentResult {
   matchedKeyword: string | null;
   reflection: string;
 }
+
+export interface AuthUser {
+  userId: string;
+  phone: string;
+  name: string | null;
+}
+
+export interface OtpRequestResult {
+  phone: string;
+  expiresInSeconds: number;
+}
+
+export interface OtpVerifyResult {
+  token: string;
+  userId: string;
+  phone: string;
+  name: string | null;
+  needsName: boolean;
+}

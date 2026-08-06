@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { detectIntent, submitIntake } from "../api/client";
 import { IntakeAnswers } from "../api/types";
 import { toPersianDigits } from "../lib/numerals";
-import { getStoredUserId, setStoredUserId } from "../userId";
 
 const GREETING = "سلام! چه کمکی از دستم برمیاد؟";
 
@@ -286,8 +285,7 @@ export default function Chat() {
     setThinking(true);
     setError(null);
     try {
-      const result = await submitIntake(getStoredUserId(), updated);
-      setStoredUserId(result.userId);
+      const result = await submitIntake(updated);
       setThinking(false);
       await streamBotMessage("بر اساس پاسخ‌هات، این مسیر رو برات آماده کردم. روی هر مرحله بزن تا جزئیاتش رو ببینی:");
       setResult({ track: result.track, steps: result.steps });
