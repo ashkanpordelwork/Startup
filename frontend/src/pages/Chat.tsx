@@ -1,4 +1,4 @@
-import { ChatRoundDots, Mic, Send, Sparkles } from "reicon-react";
+import { ChatRoundDots, CheckCircle, Mic, RefreshCircle, Send, Sparkles } from "reicon-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -90,7 +90,7 @@ function RichText({ text }: { text: string }) {
 
 function UserBubble({ text }: { text: string }) {
   return (
-    <div className="flex justify-end">
+    <div className="flex animate-fade-in-up justify-end">
       <div className="max-w-[80%] rounded-bubble bg-muted px-5 py-3 text-base leading-relaxed text-foreground">
         {text}
       </div>
@@ -100,7 +100,7 @@ function UserBubble({ text }: { text: string }) {
 
 function GreetingBubble({ text }: { text: string }) {
   return (
-    <div className="flex justify-start">
+    <div className="flex animate-fade-in-up justify-start">
       <div className="flex max-w-[85%] items-center gap-2.5 rounded-bubble bg-secondary px-5 py-3 text-base leading-relaxed text-secondary-foreground">
         <Sparkles size={16} className="shrink-0 text-brand" />
         {text}
@@ -111,7 +111,7 @@ function GreetingBubble({ text }: { text: string }) {
 
 function BotBubble({ text }: { text: string }) {
   return (
-    <div className="max-w-[92%] text-base leading-relaxed text-foreground">
+    <div className="max-w-[92%] animate-fade-in-up text-base leading-relaxed text-foreground">
       <RichText text={text} />
     </div>
   );
@@ -157,20 +157,25 @@ function ReviewActionCard({
   planId,
   action,
   onAdapted,
+  delay = 0,
 }: {
   planId: string;
   action: ActionItem;
   onAdapted: (updated: ActionItem, reply: string) => void;
+  delay?: number;
 }) {
   const category = CATEGORY_META[action.category];
   const Icon = category.icon;
   const [busy, setBusy] = useState(false);
+  const [justAdapted, setJustAdapted] = useState(false);
 
   async function handleAdapt() {
     setBusy(true);
     try {
       const result = await adaptPlanAction(planId, action.id);
       onAdapted(result.action, result.reply);
+      setJustAdapted(true);
+      setTimeout(() => setJustAdapted(false), 1200);
     } catch {
       // best-effort; leave card as-is on failure
     } finally {
@@ -179,7 +184,12 @@ function ReviewActionCard({
   }
 
   return (
-    <div className="rounded-xl bg-card p-4 shadow-sm">
+    <div
+      style={{ animationDelay: `${delay}ms` }}
+      className={`animate-fade-in-up rounded-xl bg-card p-4 shadow-sm transition-shadow duration-500 ${
+        justAdapted ? "ring-2 ring-brand/40" : ""
+      }`}
+    >
       <div className="flex items-center gap-3">
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${category.chipClassName}`}>
           <Icon size={18} />
@@ -191,7 +201,8 @@ function ReviewActionCard({
       </div>
       <p className="mt-2.5 text-sm leading-relaxed text-helper-foreground">{action.summary}</p>
       <div className="mt-3">
-        <Button variant="outline" size="sm" className="rounded-full text-sm" disabled={busy} onClick={handleAdapt}>
+        <Button variant="outline" size="sm" className="gap-1.5 rounded-full text-sm" disabled={busy} onClick={handleAdapt}>
+          {busy && <RefreshCircle size={14} className="animate-spin" />}
           {busy ? "در حال بررسی..." : "سخته، یه قدم کوچیک‌تر بده"}
         </Button>
       </div>
@@ -222,6 +233,7 @@ export default function Chat() {
   const [prefilledGoal, setPrefilledGoal] = useState<string | null>(null);
   const [plan, setPlan] = useState<{ planId: string; actions: ActionItem[] } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
   const stopStreamRef = useRef<(() => void) | null>(null);
@@ -345,10 +357,10 @@ export default function Chat() {
     setError(null);
     try {
       await confirmPlan(plan.planId);
-      navigate("/");
+      setConfirmed(true);
+      setTimeout(() => navigate("/"), 550);
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
-    } finally {
       setConfirming(false);
     }
   }
@@ -370,7 +382,7 @@ export default function Chat() {
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {showSuggestions && (
           <div className="flex flex-col items-center gap-4 pb-3 pt-6 text-center">
-            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-brand">
+            <span className="flex h-20 w-20 animate-pop-in items-center justify-center rounded-full bg-secondary text-brand">
               <ChatRoundDots size={36} />
             </span>
           </div>
@@ -395,12 +407,13 @@ export default function Chat() {
               می‌تونی یکی از این‌ها رو انتخاب کنی یا خودت تایپ کنی:
             </div>
             <div className="flex flex-wrap gap-2.5">
-              {SUGGESTIONS.map((s) => (
+              {SUGGESTIONS.map((s, i) => (
                 <Button
                   key={s}
                   variant="outline"
                   size="sm"
-                  className="h-auto rounded-full px-4 py-2 text-sm"
+                  className="h-auto animate-fade-in-up rounded-full px-4 py-2 text-sm"
+                  style={{ animationDelay: `${i * 50}ms` }}
                   onClick={() => handleSendIntent(s)}
                 >
                   {s}
@@ -467,8 +480,14 @@ export default function Chat() {
 
         {showReviewCards && (
           <div className="flex flex-col gap-3">
-            {plan.actions.map((action) => (
-              <ReviewActionCard key={action.id} planId={plan.planId} action={action} onAdapted={handleActionAdapted} />
+            {plan.actions.map((action, i) => (
+              <ReviewActionCard
+                key={action.id}
+                planId={plan.planId}
+                action={action}
+                onAdapted={handleActionAdapted}
+                delay={i * 70}
+              />
             ))}
           </div>
         )}
@@ -479,8 +498,20 @@ export default function Chat() {
 
       {showReviewCards && (
         <div className="bg-background px-5 pb-2">
-          <Button className="w-full" disabled={confirming} onClick={handleConfirmPlan}>
-            {confirming ? "در حال ثبت..." : "با این برنامه راضی‌ام، بریم"}
+          <Button className="w-full gap-2" disabled={confirming} onClick={handleConfirmPlan}>
+            {confirmed ? (
+              <>
+                <CheckCircle size={18} className="animate-pop-in" />
+                آماده شد!
+              </>
+            ) : confirming ? (
+              <>
+                <RefreshCircle size={18} className="animate-spin" />
+                در حال ثبت...
+              </>
+            ) : (
+              "با این برنامه راضی‌ام، بریم"
+            )}
           </Button>
         </div>
       )}

@@ -33,11 +33,11 @@ function BottomNav() {
             key={tab.to}
             to={tab.to}
             className={cn(
-              "flex flex-col items-center gap-1.5 px-4 py-2",
-              isActive ? "text-brand" : "text-muted-foreground opacity-70"
+              "flex flex-col items-center gap-1.5 px-4 py-2 transition-[color,transform] duration-200 active:scale-90",
+              isActive ? "scale-105 text-brand" : "scale-100 text-muted-foreground opacity-70"
             )}
           >
-            <Icon size={22} weight={isActive ? "Filled" : undefined} />
+            <Icon size={22} weight={isActive ? "Filled" : undefined} className={isActive ? "animate-pop-in" : undefined} />
             <span className="text-xs font-semibold">{tab.label}</span>
           </NavLink>
         );
@@ -61,7 +61,7 @@ export default function Layout({ children }: PropsWithChildren) {
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground hover:bg-muted"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-[background-color,transform] duration-150 hover:bg-muted active:scale-90"
               >
                 <ArrowRight size={20} />
               </button>
@@ -70,7 +70,9 @@ export default function Layout({ children }: PropsWithChildren) {
           <h1 className="text-center text-xl font-semibold">{title}</h1>
           <span />
         </header>
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</main>
+        <main key={location.pathname} className="flex min-h-0 flex-1 animate-fade-in-up flex-col overflow-hidden">
+          {children}
+        </main>
         <BottomNav />
       </div>
     </div>

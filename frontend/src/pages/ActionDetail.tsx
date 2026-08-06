@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { ArrowUp, ChatRoundDots, CheckCircle, Lifebuoy } from "reicon-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUp, ChatRoundDots, CheckCircle, Lifebuoy, RefreshCircle } from "reicon-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getAction, reportAction } from "../api/client";
 import { ActionItem, ReportKind } from "../api/types";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CATEGORY_META, STATUS_META } from "../lib/actionMeta";
 import { toPersianDigits } from "@/lib/numerals";
 
@@ -23,6 +24,8 @@ export default function ActionDetail() {
   const [selectedKind, setSelectedKind] = useState<ReportKind | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [reply, setReply] = useState<string | null>(null);
+  const [justUpdated, setJustUpdated] = useState(false);
+  const updateFlashTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (!id) return;
@@ -43,6 +46,11 @@ export default function ActionDetail() {
       const updated = await getAction(id);
       setAction(updated);
       setNote("");
+      if (kind === "struggling") {
+        setJustUpdated(true);
+        clearTimeout(updateFlashTimer.current);
+        updateFlashTimer.current = setTimeout(() => setJustUpdated(false), 1200);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
     } finally {
@@ -52,7 +60,27 @@ export default function ActionDetail() {
   }
 
   if (loading) {
-    return <div className="flex flex-1 items-center justify-center text-base text-helper-foreground">در حال بارگذاری...</div>;
+    return (
+      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
+        <div className="animate-fade-in-up rounded-xl bg-card p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-20 rounded-full" />
+              <Skeleton className="h-5 w-3/4" />
+            </div>
+          </div>
+          <Skeleton className="mt-4 h-4 w-full" />
+        </div>
+        <div className="animate-fade-in-up rounded-xl bg-card p-5 shadow-sm" style={{ animationDelay: "80ms" }}>
+          <Skeleton className="h-4 w-28" />
+          <div className="mt-3 space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!action) {
@@ -72,7 +100,7 @@ export default function ActionDetail() {
 
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
-      <div className="rounded-xl bg-card p-5 shadow-sm">
+      <div className="animate-fade-in-up rounded-xl bg-card p-5 shadow-sm">
         <div className="flex items-start gap-3">
           <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${category.chipClassName}`}>
             <CategoryIcon size={22} />
@@ -84,14 +112,21 @@ export default function ActionDetail() {
             <h1 className="mt-2 text-xl font-semibold leading-snug">{action.title}</h1>
           </div>
         </div>
-        <p className="mt-3 text-base leading-relaxed text-helper-foreground">{action.summary}</p>
+        <p className="mt-3 text-base leading-relaxed text-helper-foreground transition-opacity duration-300">
+          {action.summary}
+        </p>
       </div>
 
-      <div className="rounded-xl bg-card p-5 shadow-sm">
+      <div
+        className={`animate-fade-in-up rounded-xl bg-card p-5 shadow-sm transition-shadow duration-500 ${
+          justUpdated ? "ring-2 ring-brand/40" : ""
+        }`}
+        style={{ animationDelay: "80ms" }}
+      >
         <h2 className="text-base font-semibold">قدم‌های عملی</h2>
         <ol className="mt-3 flex flex-col gap-3">
           {action.steps.map((step, i) => (
-            <li key={i} className="flex items-start gap-3">
+            <li key={`${step}-${i}`} className="flex animate-fade-in-up items-start gap-3" style={{ animationDelay: `${i * 60}ms` }}>
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                 {toPersianDigits(i + 1)}
               </span>
@@ -101,7 +136,7 @@ export default function ActionDetail() {
         </ol>
       </div>
 
-      <div className="rounded-xl bg-card p-5 shadow-sm">
+      <div className="animate-fade-in-up rounded-xl bg-card p-5 shadow-sm" style={{ animationDelay: "140ms" }}>
         <h2 className="text-base font-semibold">وضعیتت با این اقدام چطوره؟</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {REPORT_OPTIONS.map((opt) => (
@@ -112,7 +147,11 @@ export default function ActionDetail() {
               disabled={submitting}
               onClick={() => handleReport(opt.kind)}
             >
-              <opt.icon size={16} />
+              {submitting && selectedKind === opt.kind ? (
+                <RefreshCircle size={16} className="animate-spin" />
+              ) : (
+                <opt.icon size={16} />
+              )}
               {submitting && selectedKind === opt.kind ? "در حال ثبت..." : opt.label}
             </Button>
           ))}
@@ -122,10 +161,10 @@ export default function ActionDetail() {
           onChange={(e) => setNote(e.target.value)}
           placeholder="اگه توضیح بیشتری داری، اینجا بنویس (اختیاری)..."
           rows={3}
-          className="mt-3 w-full resize-none rounded-md border border-input bg-background p-3 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mt-3 w-full resize-none rounded-md border border-input bg-background p-3 text-base shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         {reply && (
-          <div className="mt-3 rounded-bubble bg-secondary px-4 py-3 text-base leading-relaxed text-secondary-foreground">
+          <div className="mt-3 animate-fade-in-up rounded-bubble bg-secondary px-4 py-3 text-base leading-relaxed text-secondary-foreground">
             {reply}
           </div>
         )}
@@ -134,7 +173,8 @@ export default function ActionDetail() {
 
       <Button
         variant="outline"
-        className="gap-2"
+        className="animate-fade-in-up gap-2"
+        style={{ animationDelay: "200ms" }}
         onClick={() => navigate(`/chat?actionId=${action.id}&topic=${encodeURIComponent(action.title)}`)}
       >
         <ChatRoundDots size={18} />
