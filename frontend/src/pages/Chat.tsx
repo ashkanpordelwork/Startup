@@ -1,4 +1,4 @@
-import { ChatRoundDots, Copy, Mic, Send, Sparkles } from "reicon-react";
+import { ChatRoundDots, Mic, Send, Sparkles } from "reicon-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -119,23 +119,11 @@ function GreetingBubble({ text }: { text: string }) {
   );
 }
 
-function BotBubble({ text, onCopy }: { text: string; onCopy?: () => void }) {
+function BotBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-start">
-      <div className="max-w-[80%] space-y-1">
-        <div className="rounded-bubble rounded-ee-md bg-card px-5 py-3 text-base leading-relaxed text-foreground shadow-sm">
-          <RichText text={text} />
-        </div>
-        {onCopy && (
-          <button
-            type="button"
-            onClick={onCopy}
-            className="flex items-center gap-1.5 px-1 text-sm text-helper-foreground hover:text-foreground"
-          >
-            <Copy size={14} />
-            کپی
-          </button>
-        )}
+      <div className="max-w-[80%] rounded-bubble rounded-ee-md bg-card px-5 py-3 text-base leading-relaxed text-foreground shadow-sm">
+        <RichText text={text} />
       </div>
     </div>
   );
@@ -296,10 +284,6 @@ export default function Chat() {
     }
   }
 
-  function handleCopy(text: string) {
-    navigator.clipboard?.writeText(text).catch(() => {});
-  }
-
   const currentStep = phase === "questions" ? STEPS[stepIndex] : null;
   const progressPercent = (stepIndex / STEPS.length) * 100;
   const showSuggestions = phase === "intent" && entries.length === 1;
@@ -326,7 +310,7 @@ export default function Chat() {
             e.id === 0 ? (
               <GreetingBubble key={e.id} text={e.text} />
             ) : (
-              <BotBubble key={e.id} text={e.text} onCopy={() => handleCopy(e.text)} />
+              <BotBubble key={e.id} text={e.text} />
             )
           ) : (
             <UserBubble key={e.id} text={e.text} />
