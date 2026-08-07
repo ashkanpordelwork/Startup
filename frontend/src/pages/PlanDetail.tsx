@@ -54,8 +54,8 @@ export default function PlanDetail() {
   if (!plan) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-base text-destructive">{error ?? "این برنامه پیدا نشد."}</p>
-        <Link to="/" className="text-base text-brand">
+        <p className="text-sm text-destructive">{error ?? "این برنامه پیدا نشد."}</p>
+        <Link to="/" className="text-sm text-brand">
           برگشت به صفحه اصلی
         </Link>
       </div>
@@ -68,8 +68,8 @@ export default function PlanDetail() {
         <span className="inline-block rounded-full bg-secondary px-3 py-1 text-sm font-semibold text-brand">
           {TRACK_LABELS[plan.track] ?? plan.track}
         </span>
-        <h1 className="mt-2 text-xl font-semibold leading-snug">{plan.title}</h1>
-        <p className="mt-2 text-base leading-relaxed text-helper-foreground">
+        <h1 className="mt-2 text-lg font-semibold leading-snug">{plan.title}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-helper-foreground">
           این برنامه شامل {toPersianDigits(plan.actions.length)} زیرپلن هستش. روی هرکدوم بزن تا جزئیاتش رو ببینی.
         </p>
       </div>

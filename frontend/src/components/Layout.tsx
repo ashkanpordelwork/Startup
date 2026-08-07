@@ -67,7 +67,7 @@ export default function Layout({ children }: PropsWithChildren) {
               </button>
             )}
           </span>
-          <h1 className="text-center text-xl font-semibold">{title}</h1>
+          <h1 className="text-center text-lg font-semibold">{title}</h1>
           <span />
         </header>
         <main key={location.pathname} className="flex min-h-0 flex-1 animate-fade-in-up flex-col overflow-hidden">

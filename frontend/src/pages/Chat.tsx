@@ -91,7 +91,7 @@ function RichText({ text }: { text: string }) {
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex animate-fade-in-up justify-end">
-      <div className="max-w-[80%] rounded-bubble bg-muted px-5 py-3 text-base leading-relaxed text-foreground">
+      <div className="max-w-[80%] rounded-bubble bg-muted px-5 py-3 text-sm leading-relaxed text-foreground">
         {text}
       </div>
     </div>
@@ -101,7 +101,7 @@ function UserBubble({ text }: { text: string }) {
 function GreetingBubble({ text }: { text: string }) {
   return (
     <div className="flex animate-fade-in-up justify-start">
-      <div className="flex max-w-[85%] items-center gap-2.5 rounded-bubble bg-secondary px-5 py-3 text-base leading-relaxed text-secondary-foreground">
+      <div className="flex max-w-[85%] items-center gap-2.5 rounded-bubble bg-secondary px-5 py-3 text-sm leading-relaxed text-secondary-foreground">
         <Sparkles size={16} className="shrink-0 text-brand" />
         {text}
       </div>
@@ -111,7 +111,7 @@ function GreetingBubble({ text }: { text: string }) {
 
 function BotBubble({ text }: { text: string }) {
   return (
-    <div className="max-w-[92%] animate-fade-in-up text-base leading-relaxed text-foreground">
+    <div className="max-w-[92%] animate-fade-in-up text-sm leading-relaxed text-foreground">
       <RichText text={text} />
     </div>
   );
@@ -139,9 +139,9 @@ function NumberQuestion({ step, onAnswer }: { step: Extract<StepConfig, { kind: 
         onKeyDown={(e) => {
           if (e.key === "Enter") confirm();
         }}
-        className="h-11 w-28 text-base"
+        className="h-11 w-28 text-sm"
       />
-      <span className="text-base text-muted-foreground">{step.unit}</span>
+      <span className="text-sm text-muted-foreground">{step.unit}</span>
       <Button onClick={confirm}>تایید</Button>
     </div>
   );
@@ -402,7 +402,7 @@ export default function Chat() {
 
         {showSuggestions && (
           <div className="space-y-4 rounded-xl bg-card p-5 shadow-chat">
-            <div className="flex items-center gap-2.5 text-base text-foreground">
+            <div className="flex items-center gap-2.5 text-sm text-foreground">
               <Sparkles size={18} className="text-brand" />
               می‌تونی یکی از این‌ها رو انتخاب کنی یا خودت تایپ کنی:
             </div>
@@ -467,7 +467,7 @@ export default function Chat() {
 
         {streamingText !== null && (
           <div className="space-y-2.5">
-            <div className="max-w-[92%] text-base leading-relaxed text-foreground">
+            <div className="max-w-[92%] text-sm leading-relaxed text-foreground">
               <RichText text={streamingText} />
               <span className="ms-0.5 inline-block h-4 w-[2px] animate-pulse bg-foreground align-middle" />
             </div>
@@ -532,7 +532,7 @@ export default function Chat() {
                 else if (phase === "review") handleReviewNote();
                 else handleSendIntent();
               }}
-              className="h-auto border-0 bg-transparent p-0 text-base shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
+              className="h-auto border-0 bg-transparent p-0 text-sm shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
             />
             <Mic size={20} className="shrink-0 text-muted-foreground" />
           </div>

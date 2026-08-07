@@ -6,7 +6,7 @@ export default function Notifications() {
       <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-brand">
         <Bell size={28} />
       </span>
-      <p className="text-base leading-relaxed text-helper-foreground">
+      <p className="text-sm leading-relaxed text-helper-foreground">
         بخش نوتیفیکیشن‌ها به‌زودی فعال می‌شه.
       </p>
     </div>

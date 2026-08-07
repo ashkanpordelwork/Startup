@@ -107,11 +107,11 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
         {step === "phone" && (
           <form onSubmit={handleSendOtp} className="flex w-full flex-col gap-5">
             <div className="text-center">
-              <h1 className="text-2xl font-semibold">ورود به چت‌بات</h1>
-              <p className="mt-2 text-base text-helper-foreground">شماره موبایلت رو وارد کن تا کد تایید برات ارسال بشه.</p>
+              <h1 className="text-xl font-semibold">ورود به چت‌بات</h1>
+              <p className="mt-2 text-sm text-helper-foreground">شماره موبایلت رو وارد کن تا کد تایید برات ارسال بشه.</p>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="phone" className="text-base">شماره موبایل</Label>
+              <Label htmlFor="phone" className="text-sm">شماره موبایل</Label>
               <div className="relative">
                 <Iphone
                   size={19}
@@ -123,7 +123,7 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
                   inputMode="numeric"
                   autoComplete="tel"
                   placeholder="09xxxxxxxxx"
-                  className="h-12 pe-10 text-center text-base"
+                  className="h-12 pe-10 text-center text-sm"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
@@ -140,13 +140,13 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
         {step === "otp" && (
           <form onSubmit={handleVerifyOtp} className="flex w-full flex-col gap-5">
             <div className="text-center">
-              <h1 className="text-2xl font-semibold">کد تایید رو وارد کن</h1>
-              <p className="mt-2 text-base text-helper-foreground">
+              <h1 className="text-xl font-semibold">کد تایید رو وارد کن</h1>
+              <p className="mt-2 text-sm text-helper-foreground">
                 کد ۶ رقمی به شماره‌ی {toPersianDigits(phone)} ارسال شد.
               </p>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="otp" className="text-base">کد تایید</Label>
+              <Label htmlFor="otp" className="text-sm">کد تایید</Label>
               <div className="relative">
                 <LockKeyhole
                   size={19}
@@ -158,7 +158,7 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
                   inputMode="numeric"
                   maxLength={6}
                   placeholder="------"
-                  className="h-12 pe-10 text-center text-lg tracking-[0.5em]"
+                  className="h-12 pe-10 text-center text-base tracking-[0.5em]"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   required
@@ -169,7 +169,7 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
             <Button type="submit" size="lg" disabled={loading || code.trim().length < 6}>
               {loading ? "در حال بررسی..." : "تایید"}
             </Button>
-            <div className="flex items-center justify-between text-base">
+            <div className="flex items-center justify-between text-sm">
               <button type="button" className="text-helper-foreground" onClick={() => setStep("phone")}>
                 تغییر شماره
               </button>
@@ -188,18 +188,18 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
         {step === "name" && (
           <form onSubmit={handleSubmitName} className="flex w-full flex-col gap-5">
             <div className="text-center">
-              <h1 className="text-2xl font-semibold">خوش اومدی{user?.name ? "" : "!"}</h1>
-              <p className="mt-2 text-base text-helper-foreground">اسمت رو بگو تا بتونیم صدات کنیم.</p>
+              <h1 className="text-xl font-semibold">خوش اومدی{user?.name ? "" : "!"}</h1>
+              <p className="mt-2 text-sm text-helper-foreground">اسمت رو بگو تا بتونیم صدات کنیم.</p>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name" className="text-base">اسم</Label>
+              <Label htmlFor="name" className="text-sm">اسم</Label>
               <div className="relative">
                 <User size={19} className="pointer-events-none absolute inset-y-0 end-3.5 my-auto text-muted-foreground" />
                 <Input
                   id="name"
                   autoComplete="name"
                   placeholder="مثلاً: سارا"
-                  className="h-12 pe-10 text-center text-base"
+                  className="h-12 pe-10 text-center text-sm"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required

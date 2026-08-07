@@ -9,8 +9,8 @@ export default function Profile() {
       <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-brand">
         <User size={28} />
       </span>
-      {user?.name && <p className="text-lg font-semibold">{user.name}</p>}
-      <p className="text-base leading-relaxed text-helper-foreground">صفحه‌ی پروفایل به‌زودی فعال می‌شه.</p>
+      {user?.name && <p className="text-base font-semibold">{user.name}</p>}
+      <p className="text-sm leading-relaxed text-helper-foreground">صفحه‌ی پروفایل به‌زودی فعال می‌شه.</p>
     </div>
   );
 }

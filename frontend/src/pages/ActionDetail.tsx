@@ -86,8 +86,8 @@ export default function ActionDetail() {
   if (!action) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-base text-destructive">{error ?? "این اقدام پیدا نشد."}</p>
-        <Link to="/" className="text-base text-brand">
+        <p className="text-sm text-destructive">{error ?? "این اقدام پیدا نشد."}</p>
+        <Link to="/" className="text-sm text-brand">
           برگشت به صفحه اصلی
         </Link>
       </div>
