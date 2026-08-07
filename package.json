@@ -1,0 +1,17 @@
+{
+  "name": "startup-vercel-api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Root package.json used only so Vercel can install dependencies for /api serverless functions.",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2"
+  }
+}
