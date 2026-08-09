@@ -57,15 +57,15 @@ function CheckInCard() {
   if (actions.length === 0) return null;
 
   return (
-    <div className="glass-dark animate-fade-in-up rounded-xl p-5" style={{ borderRadius: "var(--radius-lg)" }}>
-      <p className="mb-1 text-base font-bold">چک‌این امروز</p>
-      <p className="mb-4 text-xs opacity-70">
+    <div className="animate-fade-in-up rounded-2xl bg-card p-5 shadow-chat">
+      <p className="mb-1 text-base font-bold text-foreground">چک‌این امروز</p>
+      <p className="mb-4 text-xs text-muted-foreground">
         {toPersianDigits(actions.length)} اقدام فعال داری — هرکدوم رو که انجام دادی، همین‌جا بزن
       </p>
       <div className="space-y-3">
         {actions.map((action) => (
-          <div key={action.id} className="space-y-2 border-t border-white/10 pt-3 first:border-t-0 first:pt-0">
-            <p className="text-sm font-semibold">{action.title}</p>
+          <div key={action.id} className="space-y-2 border-t border-border pt-3 first:border-t-0 first:pt-0">
+            <p className="text-sm font-semibold text-foreground">{action.title}</p>
             <div className="flex flex-wrap gap-2">
               {CHECKIN_OPTIONS.map((opt) => (
                 <button
@@ -74,7 +74,7 @@ function CheckInCard() {
                   disabled={reportingId === action.id}
                   onClick={() => handleReport(action, opt.kind)}
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    opt.primary ? "bg-white text-primary" : "border border-white/25 text-white/80"
+                    opt.primary ? "bg-primary text-primary-foreground" : "border border-dashed text-muted-foreground"
                   }`}
                 >
                   {reportingId === action.id ? (
@@ -86,7 +86,7 @@ function CheckInCard() {
                 </button>
               ))}
             </div>
-            {replies[action.id] && <p className="text-xs leading-relaxed opacity-80">{replies[action.id]}</p>}
+            {replies[action.id] && <p className="text-xs leading-relaxed text-muted-foreground">{replies[action.id]}</p>}
           </div>
         ))}
       </div>
