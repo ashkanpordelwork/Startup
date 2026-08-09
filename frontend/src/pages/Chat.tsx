@@ -216,27 +216,71 @@ export default function Chat() {
   const topicActionId = searchParams.get("actionId");
   const topicTitle = searchParams.get("topic");
 
+  const DRAFT_KEY = "intake_draft_v1";
+  type Draft = {
+    entries: Entry[];
+    phase: "intent" | "questions" | "submitting" | "review";
+    answers: IntakeAnswers;
+    stepIndex: number;
+    prefilledGoal: string | null;
+  };
+  function loadDraft(): Draft | null {
+    if (topicActionId) return null; // topic Q&A sessions are never persisted
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Draft;
+      if (parsed.phase !== "intent" && parsed.phase !== "questions") return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+  const draft = loadDraft();
+
   const [entries, setEntries] = useState<Entry[]>(
-    topicActionId
-      ? [{ id: 0, role: "bot", text: `داری درباره‌ی «${topicTitle}» سوال می‌پرسی. بپرس تا کمکت کنم.` }]
-      : [{ id: 0, role: "bot", text: GREETING }]
+    draft?.entries ??
+      (topicActionId
+        ? [{ id: 0, role: "bot", text: `داری درباره‌ی «${topicTitle}» سوال می‌پرسی. بپرس تا کمکت کنم.` }]
+        : [{ id: 0, role: "bot", text: GREETING }])
   );
   const [phase, setPhase] = useState<"intent" | "questions" | "submitting" | "review">(
-    topicActionId ? "review" : "intent"
+    draft?.phase ?? (topicActionId ? "review" : "intent")
   );
-  const [answers, setAnswers] = useState<IntakeAnswers>(defaultAnswers);
-  const [stepIndex, setStepIndex] = useState(0);
+  const [answers, setAnswers] = useState<IntakeAnswers>(draft?.answers ?? defaultAnswers);
+  const [stepIndex, setStepIndex] = useState(draft?.stepIndex ?? 0);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [prefilledGoal, setPrefilledGoal] = useState<string | null>(null);
+  const [prefilledGoal, setPrefilledGoal] = useState<string | null>(draft?.prefilledGoal ?? null);
   const [plan, setPlan] = useState<{ planId: string; actions: ActionItem[] } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const nextId = useRef(1);
+  const nextId = useRef(entries.length ? Math.max(...entries.map((e) => e.id)) + 1 : 1);
   const stopStreamRef = useRef<(() => void) | null>(null);
+
+  // Persist onboarding progress so closing the tab mid-intake doesn't lose answers
+  // (agreed decision: progress bar + stop/resume, product-business-decisions §6.1)
+  useEffect(() => {
+    if (topicActionId) return;
+    if (phase !== "intent" && phase !== "questions") return;
+    const toSave: Draft = { entries, phase, answers, stepIndex, prefilledGoal };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(toSave));
+    } catch {
+      // ignore quota errors — losing draft persistence is non-fatal
+    }
+  }, [entries, phase, answers, stepIndex, prefilledGoal, topicActionId]);
+
+  function clearDraft() {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
@@ -357,6 +401,7 @@ export default function Chat() {
     setError(null);
     try {
       await confirmPlan(plan.planId);
+      clearDraft();
       setConfirmed(true);
       setTimeout(() => navigate("/"), 550);
     } catch (e) {
