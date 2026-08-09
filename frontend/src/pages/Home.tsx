@@ -63,9 +63,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
-      <div className="animate-fade-in-up rounded-xl bg-card p-5 shadow-sm">
-        <h2 className="text-base font-semibold">سلام {user?.name} 👋</h2>
-        <p className="mt-1.5 text-sm leading-relaxed text-helper-foreground">
+      <div className="animate-fade-in-up glass-light rounded-xl p-5" style={{ borderRadius: "var(--radius-lg)" }}>
+        <h2 className="text-base font-bold text-foreground">سلام {user?.name}</h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
           این‌جا برنامه‌هایی که با چت‌بات ساختی رو می‌بینی. هر وقت خواستی می‌تونی برنامه‌ی جدید هم بسازی.
         </p>
       </div>

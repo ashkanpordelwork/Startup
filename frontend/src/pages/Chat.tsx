@@ -336,7 +336,7 @@ export default function Chat() {
       const result = await submitIntake(updated);
       setThinking(false);
       await streamBotMessage(
-        `تحلیل من انجام شد ✅ این اقدام‌ها رو برای «${result.title}» برات آماده کردم. اگه نکته‌ای داری بگو، وگرنه با دکمه‌ی پایین تایید کن:`
+        `تحلیل من انجام شد. این اقدام‌ها رو برای «${result.title}» برات آماده کردم. اگه نکته‌ای داری بگو، وگرنه با دکمه‌ی پایین تایید کن:`
       );
       setPlan({ planId: result.planId, actions: result.actions });
       setPhase("review");
