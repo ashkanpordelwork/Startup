@@ -8,10 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CATEGORY_META, STATUS_META } from "../lib/actionMeta";
 import { toPersianDigits } from "@/lib/numerals";
 
-const REPORT_OPTIONS: { kind: ReportKind; label: string; icon: typeof CheckCircle }[] = [
-  { kind: "done", label: "انجامش دادم", icon: CheckCircle },
-  { kind: "progress", label: "دارم پیش می‌رم", icon: ArrowUp },
-  { kind: "struggling", label: "سخته، کمکم کن", icon: Lifebuoy },
+const REPORT_OPTIONS: { kind: ReportKind; label: string; icon: typeof CheckCircle; primary: boolean }[] = [
+  { kind: "done", label: "انجامش دادم", icon: CheckCircle, primary: true },
+  { kind: "progress", label: "دارم پیش می‌رم", icon: ArrowUp, primary: true },
+  { kind: "struggling", label: "سخته، کمکم کن", icon: Lifebuoy, primary: false },
 ];
 
 export default function ActionDetail() {
@@ -142,8 +142,10 @@ export default function ActionDetail() {
           {REPORT_OPTIONS.map((opt) => (
             <Button
               key={opt.kind}
-              variant="outline"
-              className="gap-1.5 rounded-full text-sm"
+              variant={opt.primary ? "default" : "outline"}
+              className={`gap-1.5 rounded-full text-sm ${
+                opt.primary ? "" : "border-dashed bg-transparent text-muted-foreground hover:text-foreground"
+              }`}
               disabled={submitting}
               onClick={() => handleReport(opt.kind)}
             >

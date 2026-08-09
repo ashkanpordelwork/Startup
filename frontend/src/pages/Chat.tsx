@@ -35,9 +35,24 @@ const defaultAnswers: IntakeAnswers = {
 type Option = { value: string; label: string };
 
 type StepConfig =
-  | { kind: "bool"; question: string; get: (a: IntakeAnswers) => boolean; set: (a: IntakeAnswers, v: boolean) => IntakeAnswers }
+  | {
+      kind: "bool";
+      question: string;
+      get: (a: IntakeAnswers) => boolean;
+      set: (a: IntakeAnswers, v: boolean) => IntakeAnswers;
+      onYesShowFoodGroupPicker?: boolean;
+    }
   | { kind: "choice"; question: string; options: Option[]; get: (a: IntakeAnswers) => string; set: (a: IntakeAnswers, v: string) => IntakeAnswers; isGoalField?: boolean }
   | { kind: "number"; question: string; unit: string; min: number; max: number; get: (a: IntakeAnswers) => number; set: (a: IntakeAnswers, v: number) => IntakeAnswers };
+
+const FOOD_GROUPS: Option[] = [
+  { value: "carbs", label: "نان و غلات" },
+  { value: "dairy", label: "لبنیات" },
+  { value: "sugar", label: "قند و شیرینی" },
+  { value: "fat", label: "چربی" },
+  { value: "meat", label: "گوشت" },
+  { value: "gluten", label: "گلوتن" },
+];
 
 const STEPS: StepConfig[] = [
   { kind: "bool", question: "آیا باردار هستید؟", get: (a) => a.redFlags.isPregnant, set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, isPregnant: v } }) },
@@ -45,7 +60,15 @@ const STEPS: StepConfig[] = [
   { kind: "bool", question: "آیا سابقه‌ی اختلال خوردن دارید؟", get: (a) => a.redFlags.hasEatingDisorderHistory, set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, hasEatingDisorderHistory: v } }) },
   { kind: "bool", question: "آیا داروی متابولیک مصرف می‌کنید؟", get: (a) => a.redFlags.onMetabolicMedication, set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, onMetabolicMedication: v } }) },
   { kind: "bool", question: "آیا در حال حاضر تحت نظر پزشک هستید؟", get: (a) => a.redFlags.underDoctorSupervision, set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, underDoctorSupervision: v } }) },
-  { kind: "bool", question: "آیا سن شما زیر ۱۸ یا بالای ۶۵ سال است؟", get: (a) => a.redFlags.ageUnder18OrOver65, set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, ageUnder18OrOver65: v } }) },
+  {
+    kind: "number",
+    question: "چند سالته؟",
+    unit: "سال",
+    min: 1,
+    max: 120,
+    get: () => 0,
+    set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, ageUnder18OrOver65: v < 18 || v > 65 } }),
+  },
 
   { kind: "number", question: "به‌طور میانگین چند ساعت می‌خوابید؟", unit: "ساعت", min: 0, max: 16, get: (a) => a.sleep.avgSleepHours, set: (a, v) => ({ ...a, sleep: { ...a.sleep, avgSleepHours: v } }) },
   { kind: "choice", question: "ثبات خواب شما چطور است؟", options: [{ value: "consistent", label: "منظم" }, { value: "somewhat", label: "تا حدی منظم" }, { value: "inconsistent", label: "نامنظم" }], get: (a) => a.sleep.sleepConsistency, set: (a, v) => ({ ...a, sleep: { ...a.sleep, sleepConsistency: v as IntakeAnswers["sleep"]["sleepConsistency"] } }) },
@@ -58,7 +81,7 @@ const STEPS: StepConfig[] = [
 
   { kind: "number", question: "تا به حال چند بار رژیم گرفته‌اید؟", unit: "بار", min: 0, max: 50, get: (a) => a.dietHistory.previousDietsCount, set: (a, v) => ({ ...a, dietHistory: { ...a.dietHistory, previousDietsCount: v } }) },
   { kind: "bool", question: "آیا بعد از رژیم‌های قبلی وزنتون برگشته (یویو)؟", get: (a) => a.dietHistory.hasYoyoWeightHistory, set: (a, v) => ({ ...a, dietHistory: { ...a.dietHistory, hasYoyoWeightHistory: v } }) },
-  { kind: "bool", question: "آیا در حال حاضر یک گروه غذایی رو حذف کرده‌اید؟", get: (a) => a.dietHistory.currentlyEliminatingFoodGroup, set: (a, v) => ({ ...a, dietHistory: { ...a.dietHistory, currentlyEliminatingFoodGroup: v } }) },
+  { kind: "bool", question: "آیا در حال حاضر یک گروه غذایی رو حذف کرده‌اید؟", get: (a) => a.dietHistory.currentlyEliminatingFoodGroup, set: (a, v) => ({ ...a, dietHistory: { ...a.dietHistory, currentlyEliminatingFoodGroup: v } }), onYesShowFoodGroupPicker: true },
 
   { kind: "choice", question: "سطح فعالیت بدنی فعلی شما چطور است؟", options: [{ value: "sedentary", label: "کم‌تحرک" }, { value: "light", label: "سبک" }, { value: "moderate", label: "متوسط" }, { value: "active", label: "فعال" }], get: (a) => a.activity.currentActivityLevel, set: (a, v) => ({ ...a, activity: { ...a.activity, currentActivityLevel: v as IntakeAnswers["activity"]["currentActivityLevel"] } }) },
   { kind: "bool", question: "آیا آسیب یا محدودیت حرکتی دارید؟", get: (a) => a.activity.hasInjuryOrMobilityLimitation, set: (a, v) => ({ ...a, activity: { ...a.activity, hasInjuryOrMobilityLimitation: v } }) },
@@ -115,6 +138,45 @@ function BotBubble({ text }: { text: string }) {
       <RichText text={text} />
     </div>
   );
+}
+
+function QuestionInput({
+  step,
+  onAnswer,
+  prefilledGoal,
+}: {
+  step: StepConfig;
+  onAnswer: (v: boolean | string | number) => void;
+  prefilledGoal: string | null;
+}) {
+  if (step.kind === "bool") {
+    return (
+      <ToggleGroup type="single" value="" onValueChange={(v) => v && onAnswer(v === "yes")}>
+        <ToggleGroupItem value="yes">بله</ToggleGroupItem>
+        <ToggleGroupItem value="no">خیر</ToggleGroupItem>
+      </ToggleGroup>
+    );
+  }
+  if (step.kind === "choice") {
+    return (
+      <div className="space-y-2">
+        {step.isGoalField && prefilledGoal && (
+          <p className="text-xs text-helper-foreground">
+            حدس من: <strong className="font-semibold text-foreground">«{step.options.find((o) => o.value === prefilledGoal)?.label}»</strong> — اگه درسته
+            همین رو بزن، وگرنه یکی دیگه رو انتخاب کن.
+          </p>
+        )}
+        <ToggleGroup type="single" value="" onValueChange={(v) => v && onAnswer(v)} className="flex-wrap justify-start">
+          {step.options.map((opt) => (
+            <ToggleGroupItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+    );
+  }
+  return <NumberQuestion step={step} onAnswer={onAnswer} />;
 }
 
 function NumberQuestion({ step, onAnswer }: { step: Extract<StepConfig, { kind: "number" }>; onAnswer: (v: number) => void }) {
@@ -219,10 +281,12 @@ export default function Chat() {
   const DRAFT_KEY = "intake_draft_v1";
   type Draft = {
     entries: Entry[];
-    phase: "intent" | "questions" | "submitting" | "review";
+    phase: "intent" | "questions" | "confirm" | "submitting" | "review";
     answers: IntakeAnswers;
     stepIndex: number;
     prefilledGoal: string | null;
+    rawAnswers?: Record<number, boolean | string | number>;
+    eliminatedGroups?: string[];
   };
   function loadDraft(): Draft | null {
     if (topicActionId) return null; // topic Q&A sessions are never persisted
@@ -230,7 +294,7 @@ export default function Chat() {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as Draft;
-      if (parsed.phase !== "intent" && parsed.phase !== "questions") return null;
+      if (parsed.phase !== "intent" && parsed.phase !== "questions" && parsed.phase !== "confirm") return null;
       return parsed;
     } catch {
       return null;
@@ -244,11 +308,15 @@ export default function Chat() {
         ? [{ id: 0, role: "bot", text: `داری درباره‌ی «${topicTitle}» سوال می‌پرسی. بپرس تا کمکت کنم.` }]
         : [{ id: 0, role: "bot", text: GREETING }])
   );
-  const [phase, setPhase] = useState<"intent" | "questions" | "submitting" | "review">(
+  const [phase, setPhase] = useState<"intent" | "questions" | "confirm" | "submitting" | "review">(
     draft?.phase ?? (topicActionId ? "review" : "intent")
   );
   const [answers, setAnswers] = useState<IntakeAnswers>(draft?.answers ?? defaultAnswers);
   const [stepIndex, setStepIndex] = useState(draft?.stepIndex ?? 0);
+  const [rawAnswers, setRawAnswers] = useState<Record<number, boolean | string | number>>(draft?.rawAnswers ?? {});
+  const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
+  const [eliminatedGroups, setEliminatedGroups] = useState<string[]>(draft?.eliminatedGroups ?? []);
+  const [showEliminatePicker, setShowEliminatePicker] = useState(false);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
@@ -265,14 +333,14 @@ export default function Chat() {
   // (agreed decision: progress bar + stop/resume, product-business-decisions §6.1)
   useEffect(() => {
     if (topicActionId) return;
-    if (phase !== "intent" && phase !== "questions") return;
-    const toSave: Draft = { entries, phase, answers, stepIndex, prefilledGoal };
+    if (phase !== "intent" && phase !== "questions" && phase !== "confirm") return;
+    const toSave: Draft = { entries, phase, answers, stepIndex, prefilledGoal, rawAnswers, eliminatedGroups };
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(toSave));
     } catch {
       // ignore quota errors — losing draft persistence is non-fatal
     }
-  }, [entries, phase, answers, stepIndex, prefilledGoal, topicActionId]);
+  }, [entries, phase, answers, stepIndex, prefilledGoal, rawAnswers, eliminatedGroups, topicActionId]);
 
   function clearDraft() {
     try {
@@ -323,7 +391,6 @@ export default function Chat() {
       }
       setThinking(false);
       await streamBotMessage(result.reflection);
-      pushEntry("bot", STEPS[0].question);
       setPhase("questions");
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
@@ -360,24 +427,60 @@ export default function Chat() {
     );
   }
 
-  async function handleAnswer(value: boolean | string | number) {
-    const step = STEPS[stepIndex];
-    const updated = step.set(answers, value as never);
-    setAnswers(updated);
-    pushEntry("user", echoLabel(step, value));
+  function handleAnswer(value: boolean | string | number, targetIndex?: number) {
+    const index = targetIndex ?? stepIndex;
+    const step = STEPS[index];
+    setRawAnswers((r) => ({ ...r, [index]: value }));
+    setAnswers((prev) => step.set(prev, value as never));
+
+    // Editing a previously answered step: just update the value in place, don't move forward.
+    if (targetIndex !== undefined && targetIndex < stepIndex) {
+      if (step.kind === "bool" && step.onYesShowFoodGroupPicker && value === true) {
+        setShowEliminatePicker(true); // editingStepIndex stays set until picker is confirmed
+        return;
+      }
+      setEditingStepIndex(null);
+      if (step.kind === "bool" && step.onYesShowFoodGroupPicker && value !== true) {
+        setEliminatedGroups([]);
+      }
+      return;
+    }
+
+    if (step.kind === "bool" && step.onYesShowFoodGroupPicker && value === true) {
+      setShowEliminatePicker(true);
+      return; // wait for food group selection before advancing
+    }
 
     const nextIndex = stepIndex + 1;
     if (nextIndex < STEPS.length) {
-      pushEntry("bot", STEPS[nextIndex].question);
       setStepIndex(nextIndex);
       return;
     }
 
+    // All questions answered — ask for confirmation before running analysis, don't submit automatically.
+    setPhase("confirm");
+  }
+
+  function handleConfirmFoodGroupPicker() {
+    setShowEliminatePicker(false);
+    if (editingStepIndex !== null) {
+      setEditingStepIndex(null);
+      return; // edit mode: value already updated in place, no navigation change
+    }
+    const nextIndex = stepIndex + 1;
+    if (nextIndex < STEPS.length) {
+      setStepIndex(nextIndex);
+    } else {
+      setPhase("confirm");
+    }
+  }
+
+  async function handleStartAnalysis() {
     setPhase("submitting");
     setThinking(true);
     setError(null);
     try {
-      const result = await submitIntake(updated);
+      const result = await submitIntake(answers);
       setThinking(false);
       await streamBotMessage(
         `تحلیل من انجام شد. این اقدام‌ها رو برای «${result.title}» برات آماده کردم. اگه نکته‌ای داری بگو، وگرنه با دکمه‌ی پایین تایید کن:`
@@ -387,6 +490,7 @@ export default function Chat() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
       setThinking(false);
+      setPhase("confirm");
     }
   }
 
@@ -410,11 +514,12 @@ export default function Chat() {
     }
   }
 
-  const currentStep = phase === "questions" ? STEPS[stepIndex] : null;
+  const currentStep = phase === "questions" && !showEliminatePicker ? STEPS[stepIndex] : null;
   const progressPercent = (stepIndex / STEPS.length) * 100;
   const showSuggestions = !topicActionId && phase === "intent" && entries.length === 1;
   const showReviewCards = phase === "review" && plan && !topicActionId;
-  const showTextInput = phase === "intent" || topicActionId || (phase === "review" && !topicActionId);
+  const showTextInput = true;
+  const textInputDisabled = phase === "questions" || phase === "confirm" || phase === "submitting";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -468,37 +573,85 @@ export default function Chat() {
           </div>
         )}
 
-        {currentStep && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] space-y-3">
-              {currentStep.kind === "bool" && (
-                <ToggleGroup type="single" value="" onValueChange={(v) => v && handleAnswer(v === "yes")}>
-                  <ToggleGroupItem value="yes">بله</ToggleGroupItem>
-                  <ToggleGroupItem value="no">خیر</ToggleGroupItem>
-                </ToggleGroup>
-              )}
-              {currentStep.kind === "choice" && currentStep.isGoalField && prefilledGoal && (
-                <p className="text-sm text-helper-foreground">
-                  حدس من: <strong className="font-semibold text-foreground">«{currentStep.options.find((o) => o.value === prefilledGoal)?.label}»</strong> — اگه
-                  درسته همین رو بزن، وگرنه یکی دیگه رو انتخاب کن.
+        {(phase === "questions" || phase === "confirm") && (
+          <div className="space-y-2">
+            {STEPS.slice(0, stepIndex).map((step, i) => (
+              <div key={i} className="glass-light rounded-lg px-3.5 py-2.5" style={{ borderRadius: "var(--radius-md)" }}>
+                {editingStepIndex === i ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">{step.question}</p>
+                    <QuestionInput step={step} onAnswer={(v) => handleAnswer(v, i)} prefilledGoal={null} />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">{step.question}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingStepIndex(i)}
+                      className="shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground decoration-dotted underline-offset-4 hover:underline"
+                    >
+                      {echoLabel(step, rawAnswers[i] ?? step.get(answers))}
+                    </button>
+                  </div>
+                )}
+                {i === STEPS.findIndex((s) => s.kind === "bool" && s.onYesShowFoodGroupPicker) &&
+                  eliminatedGroups.length > 0 &&
+                  editingStepIndex !== i && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      گروه‌ها: {eliminatedGroups.map((g) => FOOD_GROUPS.find((f) => f.value === g)?.label).join("، ")}
+                    </p>
+                  )}
+              </div>
+            ))}
+
+            {showEliminatePicker && (
+              <div className="glass-light space-y-3 rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
+                <p className="text-sm text-foreground">کدوم گروه‌ها رو حذف کردی؟ (می‌تونی چندتا انتخاب کنی)</p>
+                <div className="flex flex-wrap gap-2">
+                  {FOOD_GROUPS.map((g) => {
+                    const selected = eliminatedGroups.includes(g.value);
+                    return (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() =>
+                          setEliminatedGroups((prev) =>
+                            selected ? prev.filter((v) => v !== g.value) : [...prev, g.value]
+                          )
+                        }
+                        className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                          selected ? "border-primary bg-primary text-primary-foreground" : "border-input text-foreground"
+                        }`}
+                      >
+                        {g.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button size="sm" className="rounded-full" onClick={handleConfirmFoodGroupPicker}>
+                  تایید
+                </Button>
+              </div>
+            )}
+
+            {currentStep && (
+              <div className="glass-light rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
+                <p className="mb-2.5 text-sm text-foreground">{currentStep.question}</p>
+                <QuestionInput step={currentStep} onAnswer={handleAnswer} prefilledGoal={prefilledGoal} />
+              </div>
+            )}
+
+            {phase === "confirm" && (
+              <div className="glass-light space-y-3 rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
+                <p className="text-sm text-foreground">
+                  جواب‌هات کامل شد. اگه همه چیز درسته، شروع کنم به بررسی و ساختن برنامه‌ت؟ اگه می‌خوای چیزی رو عوض کنی، از همون بالا روی جوابش بزن.
                 </p>
-              )}
-              {currentStep.kind === "choice" && (
-                <ToggleGroup
-                  type="single"
-                  value=""
-                  onValueChange={(v) => v && handleAnswer(v)}
-                  className="flex-wrap justify-start"
-                >
-                  {currentStep.options.map((opt) => (
-                    <ToggleGroupItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              )}
-              {currentStep.kind === "number" && <NumberQuestion step={currentStep} onAnswer={handleAnswer} />}
-            </div>
+                <Button size="sm" className="gap-2 rounded-full" disabled={thinking} onClick={handleStartAnalysis}>
+                  {thinking ? <RefreshCircle size={16} className="animate-spin" /> : null}
+                  بله، شروع کن به بررسی
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -562,17 +715,23 @@ export default function Chat() {
       )}
 
       {showTextInput && (
-        <div className="flex items-center gap-2.5 bg-background px-5 py-4">
+        <div className={`flex items-center gap-2.5 bg-background px-5 py-4 ${textInputDisabled ? "opacity-50" : ""}`}>
           <div className="glass-bar flex flex-1 items-center gap-2.5 rounded-full px-4 py-3" style={{ borderRadius: "var(--radius-pill)" }}>
             <Input
               value={input}
-              disabled={thinking || streamingText !== null}
+              disabled={textInputDisabled || thinking || streamingText !== null}
               placeholder={
-                topicActionId ? "سوالت رو بپرس..." : phase === "review" ? "اگه نکته‌ای داری بگو..." : "مثلاً: می‌خوام لاغر شم"
+                textInputDisabled
+                  ? "اول به سوال‌های بالا جواب بده..."
+                  : topicActionId
+                  ? "سوالت رو بپرس..."
+                  : phase === "review"
+                  ? "اگه نکته‌ای داری بگو..."
+                  : "مثلاً: می‌خوام لاغر شم"
               }
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key !== "Enter") return;
+                if (e.key !== "Enter" || textInputDisabled) return;
                 if (topicActionId) handleTopicQuestion();
                 else if (phase === "review") handleReviewNote();
                 else handleSendIntent();
@@ -584,7 +743,7 @@ export default function Chat() {
           <Button
             size="icon"
             className="h-11 w-11 shrink-0"
-            disabled={thinking || streamingText !== null || !input.trim()}
+            disabled={textInputDisabled || thinking || streamingText !== null || !input.trim()}
             onClick={() => {
               if (topicActionId) handleTopicQuestion();
               else if (phase === "review") handleReviewNote();
