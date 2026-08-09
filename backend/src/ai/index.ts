@@ -1,3 +1,4 @@
+import { avalaiProvider } from "./avalaiProvider.js";
 import { ruleBasedProvider } from "./ruleBasedProvider.js";
 import { AiProvider } from "./types.js";
 
@@ -12,8 +13,8 @@ export type { AiProvider } from "./types.js";
  */
 export function getAiProvider(): AiProvider {
   switch (process.env.AI_PROVIDER) {
-    // case "anthropic":
-    //   return anthropicProvider;
+    case "avalai":
+      return avalaiProvider;
     default:
       return ruleBasedProvider;
   }
