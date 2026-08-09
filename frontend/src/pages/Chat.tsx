@@ -730,7 +730,7 @@ export default function Chat() {
       )}
 
       {showReviewCards && (
-        <div className="bg-background px-5 pb-2">
+        <div className="px-5 pb-2">
           <Button className="w-full gap-2" disabled={confirming} onClick={handleConfirmPlan}>
             {confirmed ? (
               <>
@@ -750,7 +750,7 @@ export default function Chat() {
       )}
 
       {showTextInput && (
-        <div className={`flex items-center gap-2.5 bg-background px-5 py-4 ${textInputDisabled ? "opacity-50" : ""}`}>
+        <div className={`flex items-center gap-2.5 px-5 py-4 ${textInputDisabled ? "opacity-50" : ""}`}>
           <div className="glass-bar flex flex-1 items-center gap-2.5 rounded-full px-4 py-3" style={{ borderRadius: "var(--radius-pill)" }}>
             <Input
               value={input}

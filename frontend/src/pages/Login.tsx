@@ -99,7 +99,7 @@ export default function Login({ initialStep = "phone" }: { initialStep?: Step })
 
   return (
     <div className="flex h-screen justify-center bg-muted">
-      <div className="flex h-full w-full max-w-[420px] min-w-0 flex-col items-center justify-center gap-8 bg-background px-7">
+      <div className="bg-app-gradient flex h-full w-full max-w-[420px] min-w-0 flex-col items-center justify-center gap-8 px-7">
         <span className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-brand">
           <Sparkles size={36} />
         </span>
