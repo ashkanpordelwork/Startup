@@ -291,7 +291,7 @@ export default function Chat() {
   const topicActionId = searchParams.get("actionId");
   const topicTitle = searchParams.get("topic");
 
-  const DRAFT_KEY = "intake_draft_v1";
+  const DRAFT_KEY = "intake_draft_v2"; // bumped: v1 drafts predate the gender question and have mismatched indices
   type Draft = {
     entries: Entry[];
     phase: "intent" | "questions" | "confirm" | "submitting" | "review";
