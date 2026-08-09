@@ -91,7 +91,7 @@ function RichText({ text }: { text: string }) {
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex animate-fade-in-up justify-end">
-      <div className="max-w-[80%] rounded-bubble bg-muted px-5 py-3 text-sm leading-relaxed text-foreground">
+      <div className="max-w-[80%] rounded-bubble bg-primary px-5 py-3 text-sm leading-relaxed text-primary-foreground">
         {text}
       </div>
     </div>
@@ -101,7 +101,7 @@ function UserBubble({ text }: { text: string }) {
 function GreetingBubble({ text }: { text: string }) {
   return (
     <div className="flex animate-fade-in-up justify-start">
-      <div className="flex max-w-[85%] items-center gap-2.5 rounded-bubble bg-secondary px-5 py-3 text-sm leading-relaxed text-secondary-foreground">
+      <div className="glass-light flex max-w-[85%] items-center gap-2.5 rounded-bubble px-5 py-3 text-sm leading-relaxed text-foreground">
         <Sparkles size={16} className="shrink-0 text-brand" />
         {text}
       </div>
@@ -518,7 +518,7 @@ export default function Chat() {
 
       {showTextInput && (
         <div className="flex items-center gap-2.5 bg-background px-5 py-4">
-          <div className="flex flex-1 items-center gap-2.5 rounded-full border border-input bg-card px-4 py-3">
+          <div className="glass-bar flex flex-1 items-center gap-2.5 rounded-full px-4 py-3" style={{ borderRadius: "var(--radius-pill)" }}>
             <Input
               value={input}
               disabled={thinking || streamingText !== null}
