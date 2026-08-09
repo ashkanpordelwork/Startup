@@ -55,6 +55,16 @@ const FOOD_GROUPS: Option[] = [
 ];
 
 const STEPS: StepConfig[] = [
+  {
+    kind: "choice",
+    question: "جنسیتت چیه؟",
+    options: [
+      { value: "female", label: "زن" },
+      { value: "male", label: "مرد" },
+    ],
+    get: () => "",
+    set: (a) => a, // این سوال فقط برای شرطی‌کردن سوال بعدی (بارداری) استفاده می‌شه، به بک‌اند فرستاده نمی‌شه
+  },
   { kind: "bool", question: "آیا باردار هستید؟", get: (a) => a.redFlags.isPregnant, set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, isPregnant: v } }) },
   { kind: "bool", question: "آیا دیابت، بیماری کلیوی، قلبی یا فشار خون دارید؟", get: (a) => a.redFlags.hasDiabetesKidneyHeartOrBP, set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, hasDiabetesKidneyHeartOrBP: v } }) },
   { kind: "bool", question: "آیا سابقه‌ی اختلال خوردن دارید؟", get: (a) => a.redFlags.hasEatingDisorderHistory, set: (a, v) => ({ ...a, redFlags: { ...a.redFlags, hasEatingDisorderHistory: v } }) },
@@ -89,6 +99,9 @@ const STEPS: StepConfig[] = [
   { kind: "choice", isGoalField: true, question: "هدف اصلی شما چیست؟", options: [{ value: "weight_loss", label: "کاهش وزن" }, { value: "energy", label: "افزایش انرژی" }, { value: "sleep", label: "بهبود خواب" }, { value: "stress", label: "کاهش استرس" }, { value: "habit_building", label: "عادت‌سازی" }], get: (a) => a.goal.primaryGoal, set: (a, v) => ({ ...a, goal: { ...a.goal, primaryGoal: v as IntakeAnswers["goal"]["primaryGoal"] } }) },
   { kind: "choice", question: "این هدف بیشتر از درون شماست یا فشار بیرونی؟", options: [{ value: "intrinsic", label: "از درون خودم" }, { value: "extrinsic", label: "فشار/توقع دیگران" }], get: (a) => a.goal.motivation, set: (a, v) => ({ ...a, goal: { ...a.goal, motivation: v as IntakeAnswers["goal"]["motivation"] } }) },
 ];
+
+const GENDER_STEP_INDEX = 0;
+const PREGNANCY_STEP_INDEX = STEPS.findIndex((s) => s.question.includes("باردار"));
 
 type Entry = { id: number; role: "bot" | "user"; text: string };
 
@@ -317,6 +330,7 @@ export default function Chat() {
   const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
   const [eliminatedGroups, setEliminatedGroups] = useState<string[]>(draft?.eliminatedGroups ?? []);
   const [showEliminatePicker, setShowEliminatePicker] = useState(false);
+  const [autoSkipped, setAutoSkipped] = useState<Set<number>>(new Set());
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
@@ -451,7 +465,15 @@ export default function Chat() {
       return; // wait for food group selection before advancing
     }
 
-    const nextIndex = stepIndex + 1;
+    let nextIndex = stepIndex + 1;
+    // Skip the pregnancy question entirely for users who said they're male —
+    // asking it anyway felt tone-deaf and templated (per feedback).
+    if (nextIndex === PREGNANCY_STEP_INDEX && rawAnswers[GENDER_STEP_INDEX] === "male") {
+      setRawAnswers((r) => ({ ...r, [PREGNANCY_STEP_INDEX]: false }));
+      setAnswers((prev) => STEPS[PREGNANCY_STEP_INDEX].set(prev, false as never));
+      setAutoSkipped((s) => new Set(s).add(PREGNANCY_STEP_INDEX));
+      nextIndex += 1;
+    }
     if (nextIndex < STEPS.length) {
       setStepIndex(nextIndex);
       return;
@@ -573,88 +595,6 @@ export default function Chat() {
           </div>
         )}
 
-        {(phase === "questions" || phase === "confirm") && (
-          <div className="space-y-2">
-            {STEPS.slice(0, stepIndex).map((step, i) => (
-              <div key={i} className="glass-light rounded-lg px-3.5 py-2.5" style={{ borderRadius: "var(--radius-md)" }}>
-                {editingStepIndex === i ? (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">{step.question}</p>
-                    <QuestionInput step={step} onAnswer={(v) => handleAnswer(v, i)} prefilledGoal={null} />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-muted-foreground">{step.question}</span>
-                    <button
-                      type="button"
-                      onClick={() => setEditingStepIndex(i)}
-                      className="shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground decoration-dotted underline-offset-4 hover:underline"
-                    >
-                      {echoLabel(step, rawAnswers[i] ?? step.get(answers))}
-                    </button>
-                  </div>
-                )}
-                {i === STEPS.findIndex((s) => s.kind === "bool" && s.onYesShowFoodGroupPicker) &&
-                  eliminatedGroups.length > 0 &&
-                  editingStepIndex !== i && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      گروه‌ها: {eliminatedGroups.map((g) => FOOD_GROUPS.find((f) => f.value === g)?.label).join("، ")}
-                    </p>
-                  )}
-              </div>
-            ))}
-
-            {showEliminatePicker && (
-              <div className="glass-light space-y-3 rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
-                <p className="text-sm text-foreground">کدوم گروه‌ها رو حذف کردی؟ (می‌تونی چندتا انتخاب کنی)</p>
-                <div className="flex flex-wrap gap-2">
-                  {FOOD_GROUPS.map((g) => {
-                    const selected = eliminatedGroups.includes(g.value);
-                    return (
-                      <button
-                        key={g.value}
-                        type="button"
-                        onClick={() =>
-                          setEliminatedGroups((prev) =>
-                            selected ? prev.filter((v) => v !== g.value) : [...prev, g.value]
-                          )
-                        }
-                        className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                          selected ? "border-primary bg-primary text-primary-foreground" : "border-input text-foreground"
-                        }`}
-                      >
-                        {g.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <Button size="sm" className="rounded-full" onClick={handleConfirmFoodGroupPicker}>
-                  تایید
-                </Button>
-              </div>
-            )}
-
-            {currentStep && (
-              <div className="glass-light rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
-                <p className="mb-2.5 text-sm text-foreground">{currentStep.question}</p>
-                <QuestionInput step={currentStep} onAnswer={handleAnswer} prefilledGoal={prefilledGoal} />
-              </div>
-            )}
-
-            {phase === "confirm" && (
-              <div className="glass-light space-y-3 rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
-                <p className="text-sm text-foreground">
-                  جواب‌هات کامل شد. اگه همه چیز درسته، شروع کنم به بررسی و ساختن برنامه‌ت؟ اگه می‌خوای چیزی رو عوض کنی، از همون بالا روی جوابش بزن.
-                </p>
-                <Button size="sm" className="gap-2 rounded-full" disabled={thinking} onClick={handleStartAnalysis}>
-                  {thinking ? <RefreshCircle size={16} className="animate-spin" /> : null}
-                  بله، شروع کن به بررسی
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
         {thinking && (
           <div className="flex gap-1.5">
             <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
@@ -693,6 +633,97 @@ export default function Chat() {
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div ref={bottomRef} />
       </div>
+
+      {(phase === "questions" || phase === "confirm") && (
+        <div
+          className="glass-bar animate-fade-in-up max-h-[65vh] shrink-0 space-y-2 overflow-y-auto border-t px-5 pt-4 pb-3"
+          style={{
+            borderTopLeftRadius: "var(--radius-xl)",
+            borderTopRightRadius: "var(--radius-xl)",
+            boxShadow: "var(--shadow-glass)",
+          }}
+        >
+          {STEPS.slice(0, stepIndex).map((step, i) =>
+            autoSkipped.has(i) ? null : (
+              <div key={i} className="glass-light rounded-lg px-3.5 py-2.5" style={{ borderRadius: "var(--radius-md)" }}>
+                {editingStepIndex === i ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">{step.question}</p>
+                    <QuestionInput step={step} onAnswer={(v) => handleAnswer(v, i)} prefilledGoal={null} />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">{step.question}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingStepIndex(i)}
+                      className="shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground decoration-dotted underline-offset-4 hover:underline"
+                    >
+                      {echoLabel(step, rawAnswers[i] ?? step.get(answers))}
+                    </button>
+                  </div>
+                )}
+                {i === STEPS.findIndex((s) => s.kind === "bool" && s.onYesShowFoodGroupPicker) &&
+                  eliminatedGroups.length > 0 &&
+                  editingStepIndex !== i && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      گروه‌ها: {eliminatedGroups.map((g) => FOOD_GROUPS.find((f) => f.value === g)?.label).join("، ")}
+                    </p>
+                  )}
+              </div>
+            )
+          )}
+
+          {showEliminatePicker && (
+            <div className="glass-light space-y-3 rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
+              <p className="text-sm text-foreground">کدوم گروه‌ها رو حذف کردی؟ (می‌تونی چندتا انتخاب کنی)</p>
+              <div className="flex flex-wrap gap-2">
+                {FOOD_GROUPS.map((g) => {
+                  const selected = eliminatedGroups.includes(g.value);
+                  return (
+                    <button
+                      key={g.value}
+                      type="button"
+                      onClick={() =>
+                        setEliminatedGroups((prev) =>
+                          selected ? prev.filter((v) => v !== g.value) : [...prev, g.value]
+                        )
+                      }
+                      className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                        selected ? "border-primary bg-primary text-primary-foreground" : "border-input text-foreground"
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button size="sm" className="rounded-full" onClick={handleConfirmFoodGroupPicker}>
+                تایید
+              </Button>
+            </div>
+          )}
+
+          {currentStep && (
+            <div className="glass-light rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
+              <p className="mb-2.5 text-sm text-foreground">{currentStep.question}</p>
+              <QuestionInput step={currentStep} onAnswer={handleAnswer} prefilledGoal={prefilledGoal} />
+            </div>
+          )}
+
+          {phase === "confirm" && (
+            <div className="glass-light space-y-3 rounded-lg px-3.5 py-3" style={{ borderRadius: "var(--radius-md)" }}>
+              <p className="text-sm text-foreground">
+                جواب‌هات کامل شد. اگه همه چیز درسته، شروع کنم به بررسی و ساختن برنامه‌ت؟ اگه می‌خوای چیزی رو عوض کنی، از همون بالا روی جوابش بزن.
+              </p>
+              <Button size="sm" className="gap-2 rounded-full" disabled={thinking} onClick={handleStartAnalysis}>
+                {thinking ? <RefreshCircle size={16} className="animate-spin" /> : null}
+                بله، شروع کن به بررسی
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {showReviewCards && (
         <div className="bg-background px-5 pb-2">

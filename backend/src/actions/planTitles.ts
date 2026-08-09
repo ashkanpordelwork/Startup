@@ -9,7 +9,7 @@ const GOAL_TITLES: Record<GoalAnswers["primaryGoal"], string> = {
 };
 
 const TRACK_FALLBACK_TITLES: Record<Track, string> = {
-  [Track.TRACK_0_RED_FLAG]: "برنامه‌ی احتیاط و هماهنگی با پزشک",
+  [Track.TRACK_0_RED_FLAG]: "برنامه‌ی احتیاط و شروع آرام",
   [Track.TRACK_1_SLEEP_STRESS]: "برنامه‌ی خواب و استرس",
   [Track.TRACK_2_DIET_HISTORY]: "برنامه‌ی پایدارسازی عادت غذایی",
   [Track.TRACK_3_MOBILITY]: "برنامه‌ی کم‌ضربه",
