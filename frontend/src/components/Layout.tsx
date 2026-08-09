@@ -21,10 +21,19 @@ const HEADER_TITLES: { match: (p: string) => boolean; title: string }[] = [
 
 const ROOT_PATHS = ["/", "/notifications", "/profile"];
 
+/**
+ * Floating pill tab bar with strong glass blur — pattern taken from the
+ * liquid-glass and fintech references the user provided (not the earlier,
+ * flatter "glass-bar" style). Margin on all sides so it visibly floats above
+ * the gradient background rather than sitting flush against the screen edges.
+ */
 function BottomNav() {
   const location = useLocation();
   return (
-    <nav className="flex items-center justify-around bg-background px-2 pb-3 pt-2">
+    <nav
+      className="glass-bar mx-4 mb-3 flex items-center justify-around px-2 py-2.5"
+      style={{ borderRadius: "var(--radius-pill)", backdropFilter: "blur(28px) saturate(200%)" }}
+    >
       {tabs.map((tab) => {
         const isActive = tab.match(location.pathname);
         const Icon = tab.icon;
@@ -33,16 +42,29 @@ function BottomNav() {
             key={tab.to}
             to={tab.to}
             className={cn(
-              "flex flex-col items-center gap-1.5 px-4 py-2 transition-[color,transform] duration-200 active:scale-90",
-              isActive ? "scale-105 text-brand" : "scale-100 text-muted-foreground opacity-70"
+              "flex flex-col items-center gap-1 rounded-full px-5 py-1.5 transition-[color,transform] duration-200 active:scale-90",
+              isActive ? "scale-105 text-brand" : "scale-100 text-muted-foreground opacity-60"
             )}
           >
-            <Icon size={22} weight={isActive ? "Filled" : undefined} className={isActive ? "animate-pop-in" : undefined} />
-            <span className="text-xs font-semibold">{tab.label}</span>
+            <Icon size={21} weight={isActive ? "Filled" : undefined} className={isActive ? "animate-pop-in" : undefined} />
+            <span className="text-[11px] font-semibold">{tab.label}</span>
           </NavLink>
         );
       })}
     </nav>
+  );
+}
+
+/** Floating white circular icon buttons — pattern from the fintech reference top bar. */
+function CircleIconButton({ onClick, children }: PropsWithChildren<{ onClick?: () => void }>) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-foreground shadow-chat transition-transform duration-150 active:scale-90"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -54,20 +76,10 @@ export default function Layout({ children }: PropsWithChildren) {
 
   return (
     <div className="flex h-screen justify-center bg-muted">
-      <div className="flex h-full w-full max-w-[420px] min-w-0 flex-col bg-background">
-        <header className="grid grid-cols-[1fr_auto_1fr] items-center bg-background px-5 py-4">
-          <span>
-            {showBack && (
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-[background-color,transform] duration-150 hover:bg-muted active:scale-90"
-              >
-                <ArrowRight size={20} />
-              </button>
-            )}
-          </span>
-          <h1 className="text-center text-lg font-semibold">{title}</h1>
+      <div className="bg-app-gradient flex h-full w-full max-w-[420px] min-w-0 flex-col">
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-5 py-4">
+          <span>{showBack && <CircleIconButton onClick={() => navigate(-1)}><ArrowRight size={18} /></CircleIconButton>}</span>
+          <h1 className="text-center text-base font-bold text-foreground">{title}</h1>
           <span />
         </header>
         <main key={location.pathname} className="flex min-h-0 flex-1 animate-fade-in-up flex-col overflow-hidden">

@@ -99,7 +99,7 @@ function PlanCard({ plan, style }: { plan: PlanSummary; style?: CSSProperties })
     <Link
       to={`/plans/${plan.id}`}
       style={style}
-      className="flex animate-fade-in-up items-center gap-3 rounded-xl bg-card p-4 shadow-sm transition-[background-color,transform] duration-150 hover:bg-muted/60 active:scale-[0.98]"
+      className="flex animate-fade-in-up items-center gap-3 rounded-2xl bg-card p-4 shadow-chat transition-[background-color,transform] duration-150 hover:bg-muted/60 active:scale-[0.98]"
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-brand">
         <Sparkles size={20} />
@@ -118,7 +118,7 @@ function PlanCard({ plan, style }: { plan: PlanSummary; style?: CSSProperties })
 
 function PlanCardSkeleton({ style }: { style?: CSSProperties }) {
   return (
-    <div style={style} className="flex animate-fade-in-up items-center gap-3 rounded-xl bg-card p-4 shadow-sm">
+    <div style={style} className="flex animate-fade-in-up items-center gap-3 rounded-2xl bg-card p-4 shadow-chat">
       <Skeleton className="h-11 w-11 shrink-0 rounded-xl" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-2/3" />
