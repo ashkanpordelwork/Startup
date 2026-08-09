@@ -46,11 +46,6 @@ export default function ActionDetail() {
       const updated = await getAction(id);
       setAction(updated);
       setNote("");
-      if (kind === "struggling") {
-        setJustUpdated(true);
-        clearTimeout(updateFlashTimer.current);
-        updateFlashTimer.current = setTimeout(() => setJustUpdated(false), 1200);
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
     } finally {

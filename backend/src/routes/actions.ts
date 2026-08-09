@@ -1,7 +1,5 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { getAiProvider } from "../ai/index.js";
-import { ActionCategory } from "../actions/templates.js";
 import { sql } from "../db.js";
 
 export const actionsRouter = Router();
@@ -51,25 +49,13 @@ actionsRouter.post("/:id/report", async (req, res) => {
   }
 
   let reply: string;
-  let updatedAction = null;
+  const updatedAction = null;
 
   if (kind === "struggling") {
-    // «سختمه» هیچ‌وقت به معنای تعطیل‌کردن اقدام نیست؛ همیشه به یک نسخه‌ی
-    // قابل‌انجام‌تر از همون هدف ختم می‌شه.
-    const adapted = await getAiProvider().adaptAction({
-      category: action.category as ActionCategory,
-      title: action.title as string,
-      reason: "struggling",
-    });
-    await sql`
-      UPDATE action_items SET summary = ${adapted.summary}, steps = ${JSON.stringify(adapted.steps)}, updated_at = now()
-      WHERE id = ${req.params.id}
-    `;
-    const updatedRows = await sql`
-      SELECT id, category, title, summary, steps, status, created_at FROM action_items WHERE id = ${req.params.id}
-    `;
-    updatedAction = toActionDto(updatedRows[0]);
-    reply = adapted.reply;
+    // «سخته» دیگر بی‌صدا و فوری اقدام را ساده نمی‌کند — طبق تصمیم محصول
+    // (product-business-decisions §6.2)، فقط همدلانه ثبت می‌شود. تشخیص الگو
+    // (چند بار پشت‌سرهم) و پیشنهاد واقعیِ قابل‌تایید در /me/suggestions است.
+    reply = "باشه، طبیعیه. یادداشت کردم — اگه چندبار دیگه هم اینو بزنی، خودم یه پیشنهاد برات آماده می‌کنم.";
   } else if (kind === "done") {
     await sql`UPDATE action_items SET status = 'done', updated_at = now() WHERE id = ${req.params.id}`;
     reply =

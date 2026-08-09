@@ -97,6 +97,13 @@ export interface ActionReportResult {
   action: ActionItem | null;
 }
 
+export interface Suggestion {
+  actionId: string;
+  actionTitle: string;
+  noticedText: string;
+  previewSummary: string;
+}
+
 export interface TodayAction extends ActionItem {
   planId: string;
   planTitle: string;

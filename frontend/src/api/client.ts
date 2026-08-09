@@ -13,6 +13,7 @@ import {
   PlanDetail,
   PlanSummary,
   ReportKind,
+  Suggestion,
   TodayAction,
 } from "./types";
 
@@ -90,6 +91,18 @@ export function getPlans() {
 
 export function getTodayActions() {
   return request<TodayAction[]>("/me/today");
+}
+
+export function getSuggestions() {
+  return request<Suggestion[]>("/me/suggestions");
+}
+
+export function applySuggestion(actionId: string) {
+  return request<{ reply: string; action: ActionItem }>(`/me/suggestions/${actionId}/apply`, { method: "POST" });
+}
+
+export function declineSuggestion(actionId: string) {
+  return request<{ ok: boolean }>(`/me/suggestions/${actionId}/decline`, { method: "POST" });
 }
 
 export function getPlan(id: string) {
