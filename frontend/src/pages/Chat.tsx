@@ -468,7 +468,11 @@ export default function Chat() {
     let nextIndex = stepIndex + 1;
     // Skip the pregnancy question entirely for users who said they're male —
     // asking it anyway felt tone-deaf and templated (per feedback).
-    if (nextIndex === PREGNANCY_STEP_INDEX && rawAnswers[GENDER_STEP_INDEX] === "male") {
+    // NOTE: read the gender value directly from `value`/`index` when we're on
+    // the gender step itself — `rawAnswers` state hasn't re-rendered yet at
+    // this point in the same function call, so reading it here would be stale.
+    const genderValue = index === GENDER_STEP_INDEX ? (value as string) : rawAnswers[GENDER_STEP_INDEX];
+    if (nextIndex === PREGNANCY_STEP_INDEX && genderValue === "male") {
       setRawAnswers((r) => ({ ...r, [PREGNANCY_STEP_INDEX]: false }));
       setAnswers((prev) => STEPS[PREGNANCY_STEP_INDEX].set(prev, false as never));
       setAutoSkipped((s) => new Set(s).add(PREGNANCY_STEP_INDEX));
