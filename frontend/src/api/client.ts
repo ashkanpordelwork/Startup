@@ -13,6 +13,7 @@ import {
   PlanDetail,
   PlanSummary,
   ReportKind,
+  TodayAction,
 } from "./types";
 
 class ApiError extends Error {
@@ -85,6 +86,10 @@ export function submitIntake(answers: IntakeAnswers) {
 
 export function getPlans() {
   return request<PlanSummary[]>("/plans");
+}
+
+export function getTodayActions() {
+  return request<TodayAction[]>("/me/today");
 }
 
 export function getPlan(id: string) {

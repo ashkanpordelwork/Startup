@@ -97,6 +97,11 @@ export interface ActionReportResult {
   action: ActionItem | null;
 }
 
+export interface TodayAction extends ActionItem {
+  planId: string;
+  planTitle: string;
+}
+
 export interface AdaptResult {
   reply: string;
   action: ActionItem;

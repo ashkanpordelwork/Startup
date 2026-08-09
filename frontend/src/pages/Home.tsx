@@ -1,12 +1,98 @@
 import { CSSProperties, useEffect, useState } from "react";
-import { ChevronLeft, Plus, Sparkles } from "reicon-react";
+import { ArrowUp, CheckCircle, ChevronLeft, Lifebuoy, Plus, RefreshCircle, Sparkles } from "reicon-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getPlans } from "../api/client";
-import { PlanSummary } from "../api/types";
+import { getPlans, getTodayActions, reportAction } from "../api/client";
+import { PlanSummary, ReportKind, TodayAction } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TRACK_LABELS } from "../lib/trackMeta";
 import { toPersianDigits } from "../lib/numerals";
+
+const CHECKIN_OPTIONS: { kind: ReportKind; label: string; icon: typeof CheckCircle; primary: boolean }[] = [
+  { kind: "done", label: "انجامش دادم", icon: CheckCircle, primary: true },
+  { kind: "progress", label: "در حال انجامه", icon: ArrowUp, primary: true },
+  { kind: "struggling", label: "سخته", icon: Lifebuoy, primary: false },
+];
+
+/**
+ * Centralized daily check-in — every active action across all plans, reportable
+ * with one tap, without opening each action's own page. (product decision §6.2)
+ */
+function CheckInCard() {
+  const [actions, setActions] = useState<TodayAction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reportingId, setReportingId] = useState<string | null>(null);
+  const [replies, setReplies] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    getTodayActions()
+      .then(setActions)
+      .catch(() => {
+        /* silently skip the card if this fails — Home's plan list is the source of truth */
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleReport(action: TodayAction, kind: ReportKind) {
+    setReportingId(action.id);
+    try {
+      const result = await reportAction(action.id, kind);
+      setReplies((r) => ({ ...r, [action.id]: result.reply }));
+      if (kind === "done") {
+        setTimeout(() => setActions((prev) => prev.filter((a) => a.id !== action.id)), 900);
+      } else if (result.action) {
+        const updated = result.action;
+        setActions((prev) => prev.map((a) => (a.id === action.id ? { ...a, ...updated } : a)));
+      }
+    } catch {
+      // non-fatal: user can retry the tap, or report from the action's own detail page
+    } finally {
+      setReportingId(null);
+    }
+  }
+
+  if (loading) {
+    return <Skeleton className="h-32 w-full rounded-xl" />;
+  }
+  if (actions.length === 0) return null;
+
+  return (
+    <div className="glass-dark animate-fade-in-up rounded-xl p-5" style={{ borderRadius: "var(--radius-lg)" }}>
+      <p className="mb-1 text-base font-bold">چک‌این امروز</p>
+      <p className="mb-4 text-xs opacity-70">
+        {toPersianDigits(actions.length)} اقدام فعال داری — هرکدوم رو که انجام دادی، همین‌جا بزن
+      </p>
+      <div className="space-y-3">
+        {actions.map((action) => (
+          <div key={action.id} className="space-y-2 border-t border-white/10 pt-3 first:border-t-0 first:pt-0">
+            <p className="text-sm font-semibold">{action.title}</p>
+            <div className="flex flex-wrap gap-2">
+              {CHECKIN_OPTIONS.map((opt) => (
+                <button
+                  key={opt.kind}
+                  type="button"
+                  disabled={reportingId === action.id}
+                  onClick={() => handleReport(action, opt.kind)}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    opt.primary ? "bg-white text-primary" : "border border-white/25 text-white/80"
+                  }`}
+                >
+                  {reportingId === action.id ? (
+                    <RefreshCircle size={14} className="animate-spin" />
+                  ) : (
+                    <opt.icon size={14} />
+                  )}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {replies[action.id] && <p className="text-xs leading-relaxed opacity-80">{replies[action.id]}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function PlanCard({ plan, style }: { plan: PlanSummary; style?: CSSProperties }) {
   return (
@@ -69,6 +155,8 @@ export default function Home() {
           این‌جا برنامه‌هایی که با چت‌بات ساختی رو می‌بینی. هر وقت خواستی می‌تونی برنامه‌ی جدید هم بسازی.
         </p>
       </div>
+
+      <CheckInCard />
 
       {error && <p className="px-1 text-sm text-destructive">{error}</p>}
 
