@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // بدون این، Vite فقط از خود ماشین قابل‌دسترسیه، نه از پورت‌فوروارد Codespaces
     proxy: {
       "/api": "http://localhost:4000",
     },
