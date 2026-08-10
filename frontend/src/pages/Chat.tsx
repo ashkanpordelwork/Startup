@@ -336,6 +336,8 @@ export default function Chat() {
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prefilledGoal, setPrefilledGoal] = useState<string | null>(draft?.prefilledGoal ?? null);
+  const [clarifyRounds, setClarifyRounds] = useState(0);
+  const MAX_CLARIFY_ROUNDS = 2;
   const [plan, setPlan] = useState<{ planId: string; actions: ActionItem[] } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -404,6 +406,16 @@ export default function Chat() {
         setPrefilledGoal(result.goal);
       }
       setThinking(false);
+
+      // Ambiguous input: AI asked a clarifying question instead of a goal —
+      // stay in "intent" phase and wait for another free-text reply, rather
+      // than jumping straight to the structured question bank.
+      if (result.clarifyingQuestion && !result.goal && clarifyRounds < MAX_CLARIFY_ROUNDS) {
+        setClarifyRounds((n) => n + 1);
+        await streamBotMessage(result.clarifyingQuestion);
+        return; // still phase === "intent"
+      }
+
       await streamBotMessage(result.reflection);
       setPhase("questions");
     } catch (e) {

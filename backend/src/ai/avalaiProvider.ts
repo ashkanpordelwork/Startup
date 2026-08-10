@@ -1,5 +1,5 @@
 import { detectIntent as ruleDetectIntent } from "../intent/detect.js";
-import { getIntentReflection } from "../intent/templates.js";
+import { FALLBACK_REFLECTION, getIntentReflection } from "../intent/templates.js";
 import { ruleBasedProvider } from "./ruleBasedProvider.js";
 import {
   AdaptActionInput,
@@ -75,7 +75,30 @@ async function detectIntent(text: string): Promise<IntentDetectionResult> {
   // low-risk keyword match, and keeping it deterministic avoids burning an
   // API call (and the associated latency/cost) on every single message.
   const { goal, matchedKeyword } = ruleDetectIntent(text);
-  return { goal, matchedKeyword, reflection: getIntentReflection(goal) };
+
+  if (goal) {
+    return { goal, matchedKeyword, reflection: getIntentReflection(goal) };
+  }
+
+  // Ambiguous input ("نمی‌دونم چمه، فقط حالم خوب نیست") — this is exactly the
+  // case that needs a real model, not a keyword list. Ask one short, open,
+  // empathetic follow-up question to help narrow down the topic.
+  try {
+    const clarifyingQuestion = await callAvalAI(
+      [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `کاربر توی همون قدم اول گفته: "${text}" — این خیلی کلی/مبهمه و به هیچ‌کدوم از حوزه‌های خواب، استرس، انرژی، وزن، یا عادت‌سازی مستقیم اشاره نکرده. به‌جای فرم زدن، فقط یک سوال کوتاه و کنجکاوانه (نه چندتا) بپرس که کمکش کنه خودش حوزه‌ی اصلی مشکلش رو پیدا کنه — مثلاً درباره‌ی خواب، انرژی روزانه، یا استرس بپرس. فقط خود سوال رو بنویس، بدون مقدمه یا توضیح اضافه.`,
+        },
+      ],
+      120
+    );
+    return { goal: null, matchedKeyword: null, reflection: FALLBACK_REFLECTION, clarifyingQuestion };
+  } catch (err) {
+    console.error("[avalaiProvider] detectIntent clarifying-question fallback:", err);
+    return { goal: null, matchedKeyword: null, reflection: FALLBACK_REFLECTION };
+  }
 }
 
 async function answerQuestion(input: AnswerQuestionInput): Promise<string> {

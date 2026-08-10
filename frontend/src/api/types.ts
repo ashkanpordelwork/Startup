@@ -126,6 +126,7 @@ export interface IntentResult {
   goal: GoalAnswers["primaryGoal"] | null;
   matchedKeyword: string | null;
   reflection: string;
+  clarifyingQuestion?: string;
 }
 
 export interface AuthUser {

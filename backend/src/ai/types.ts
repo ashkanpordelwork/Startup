@@ -5,6 +5,14 @@ export interface IntentDetectionResult {
   goal: GoalAnswers["primaryGoal"] | null;
   matchedKeyword: string | null;
   reflection: string;
+  /**
+   * When set, the goal was ambiguous — the caller should show this as a bot
+   * message and wait for another free-text reply instead of moving to the
+   * structured question bank (product-business-decisions §6.1, "کاوش آزاد").
+   * Only ever set by AI-backed providers; the rule-based provider has no way
+   * to generate a genuinely relevant follow-up question.
+   */
+  clarifyingQuestion?: string;
 }
 
 export interface AnswerQuestionInput {
