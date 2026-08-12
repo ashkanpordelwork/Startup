@@ -363,6 +363,15 @@ export default function Chat() {
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const MAX_INPUT_HEIGHT = 220; // px — با کلاس max-h-[33vh] ترکیب می‌شه، هرکدوم کوچیک‌تر بود اعمال می‌شه
+
+  // وقتی پیام ارسال شد (input خالی شد)، ارتفاع باکس رو به حالت یک‌خطی برگردون
+  useEffect(() => {
+    if (input === "" && inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
+  }, [input]);
   const nextId = useRef(entries.length ? Math.max(...entries.map((e) => e.id)) + 1 : 1);
   const stopStreamRef = useRef<(() => void) | null>(null);
 
@@ -835,9 +844,15 @@ export default function Chat() {
       )}
 
       {showTextInput && (
-        <div className={`flex items-center gap-2.5 px-5 py-4 ${textInputDisabled ? "opacity-50" : ""}`}>
-          <div className="glass-bar flex flex-1 items-center gap-2.5 rounded-full px-4 py-3" style={{ borderRadius: "var(--radius-pill)" }}>
-            <Input
+        <div className={`flex items-end gap-2.5 px-5 py-4 ${textInputDisabled ? "opacity-50" : ""}`}>
+          <div
+            className="glass-bar flex flex-1 items-end gap-2.5 rounded-3xl px-4 py-2.5"
+            style={{ borderRadius: "var(--radius-xl)" }}
+          >
+            <Mic size={20} className="mb-1.5 shrink-0 text-muted-foreground" />
+            <textarea
+              ref={inputRef}
+              rows={1}
               value={input}
               disabled={textInputDisabled || thinking || streamingText !== null}
               placeholder={
@@ -849,29 +864,34 @@ export default function Chat() {
                   ? "اگه نکته‌ای داری بگو..."
                   : "چطور می‌تونم کمکت کنم؟"
               }
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                const el = e.target;
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, MAX_INPUT_HEIGHT)}px`;
+              }}
               onKeyDown={(e) => {
-                if (e.key !== "Enter" || textInputDisabled) return;
+                if (e.key !== "Enter" || e.shiftKey || textInputDisabled) return;
+                e.preventDefault();
                 if (topicActionId) handleTopicQuestion();
                 else if (phase === "review") handleReviewNote();
                 else handleSendIntent();
               }}
-              className="h-auto border-0 bg-transparent p-0 text-sm shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
+              className="max-h-[33vh] flex-1 resize-none overflow-y-auto border-0 bg-transparent py-1.5 text-sm leading-relaxed shadow-none outline-none placeholder:text-muted-foreground"
             />
-            <Mic size={20} className="shrink-0 text-muted-foreground" />
+            <Button
+              size="icon"
+              className="mb-0.5 h-9 w-9 shrink-0 rounded-full"
+              disabled={textInputDisabled || thinking || streamingText !== null || !input.trim()}
+              onClick={() => {
+                if (topicActionId) handleTopicQuestion();
+                else if (phase === "review") handleReviewNote();
+                else handleSendIntent();
+              }}
+            >
+              <Send size={18} className="-scale-x-100" />
+            </Button>
           </div>
-          <Button
-            size="icon"
-            className="h-11 w-11 shrink-0"
-            disabled={textInputDisabled || thinking || streamingText !== null || !input.trim()}
-            onClick={() => {
-              if (topicActionId) handleTopicQuestion();
-              else if (phase === "review") handleReviewNote();
-              else handleSendIntent();
-            }}
-          >
-            <Send size={20} className="-scale-x-100" />
-          </Button>
         </div>
       )}
     </div>
