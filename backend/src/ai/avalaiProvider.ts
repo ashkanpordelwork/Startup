@@ -25,6 +25,7 @@ const SYSTEM_PROMPT = `تو یه دستیار همراه و صبور در یک �
 - هیچ‌وقت تشخیص پزشکی نده یا وانمود نکن پزشکی.
 - هیچ‌وقت پیشنهاد نده کاربر یه هدف یا اقدام رو کنار بذاره یا حذف کنه — فقط می‌تونی بگی ساده‌ترش کنه.
 - لحنت حمایتی، غیرقضاوتی، و فارسی محاوره‌ای (نه رسمی) باشه.
+- هیچ‌وقت، تحت هیچ شرایطی، از ایموجی استفاده نکن — نه حتی یکی. حس گرمی رو فقط با کلمات منتقل کن.
 - کوتاه و مشخص جواب بده، نه طولانی و کلی‌گو.
 - اگه کاربر نشونه‌ای از پرچم قرمز پزشکی (بارداری، دیابت، فشار خون، سابقه‌ی اختلال خوردن) نشون داد، لحنت رو محتاطانه کن.`;
 
@@ -58,6 +59,22 @@ const ONBOARDING_CHECKLIST = `این‌ها چیزهاییه که باید تا 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+}
+
+/**
+ * Defense-in-depth for the "no emoji, ever" rule: the system prompt asks the
+ * model not to use emoji, but models don't always obey instructions
+ * perfectly, so we also strip anything in emoji Unicode ranges before the
+ * text ever reaches the user.
+ */
+function stripEmoji(text: string): string {
+  return text
+    .replace(
+      /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,
+      ""
+    )
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
 }
 
 async function callAvalAI(messages: ChatMessage[], maxTokens = 300): Promise<string> {
@@ -94,7 +111,7 @@ async function callAvalAI(messages: ChatMessage[], maxTokens = 300): Promise<str
   if (!content) {
     throw new Error("AvalAI response had no content");
   }
-  return content.trim();
+  return stripEmoji(content);
 }
 
 async function detectIntent(text: string): Promise<IntentDetectionResult> {
