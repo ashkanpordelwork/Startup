@@ -414,10 +414,10 @@ export default function Chat() {
         resolve();
       };
       const timer = setInterval(() => {
-        shown = Math.min(text.length, shown + 3);
+        shown = Math.min(text.length, shown + 2);
         setStreamingText(text.slice(0, shown));
         if (shown >= text.length) finish();
-      }, 20);
+      }, 28);
       stopStreamRef.current = finish;
     });
   }
@@ -702,15 +702,9 @@ export default function Chat() {
         )}
 
         {streamingText !== null && (
-          <div className="space-y-2.5">
-            <div className="max-w-[92%] text-sm leading-relaxed text-foreground">
-              <RichText text={streamingText} />
-              <span className="ms-0.5 inline-block h-4 w-[2px] animate-pulse bg-foreground align-middle" />
-            </div>
-            <Button variant="outline" size="sm" className="gap-2 rounded-full text-sm" onClick={() => stopStreamRef.current?.()}>
-              <span className="h-2 w-2 rounded-[2px] bg-foreground" />
-              در حال تولید پاسخ... (توقف)
-            </Button>
+          <div className="max-w-[92%] text-sm leading-relaxed text-foreground">
+            <RichText text={streamingText} />
+            <span className="ms-0.5 inline-block h-4 w-[2px] animate-pulse bg-foreground align-middle" />
           </div>
         )}
 
