@@ -22,6 +22,14 @@ echo "🚀 نصب وابستگی‌ها (اگه قبلاً نصب نشده با�
 echo "🚀 روشن کردن بک‌اند روی پورت 4000..."
 (cd backend && npm run dev) &
 
+echo "⏳ منتظر آماده شدن کامل بک‌اند..."
+for i in $(seq 1 30); do
+  if curl -s http://localhost:4000 > /dev/null 2>&1; then
+    break
+  fi
+  sleep 0.5
+done
+
 echo "🚀 روشن کردن فرانت‌اند روی پورت 5173..."
 (cd frontend && npm run dev) &
 
