@@ -41,8 +41,29 @@ export interface AdaptActionResult {
  * in a real model later means implementing this same interface and switching
  * the provider in ai/index.ts — no caller (routes, frontend) needs to change.
  */
+export interface ConverseResult {
+  reply: string;
+  readyToBuildPlan: boolean;
+}
+
 export interface AiProvider {
   detectIntent(text: string): Promise<IntentDetectionResult>;
   answerQuestion(input: AnswerQuestionInput): Promise<string>;
   adaptAction(input: AdaptActionInput): Promise<AdaptActionResult>;
+  /**
+   * Free-form onboarding conversation (product-business-decisions §12).
+   * Only meaningfully implemented by AI-backed providers — the rule-based
+   * provider throws, since it has no way to hold an open conversation; the
+   * frontend falls back to the old structured bottom-sheet flow in that case.
+   */
+  converseOnboarding(history: { role: "user" | "assistant"; text: string }[]): Promise<ConverseResult>;
+  /**
+   * Turns a free-form conversation into the structured IntakeAnswers object
+   * the existing rule-based triage engine (computeTrack) already consumes.
+   * AI is only a translator here — the triage decision logic itself is
+   * untouched (§12: "AI فقط لایه‌ی رابط/مترجم است").
+   */
+  extractIntakeAnswers(
+    history: { role: "user" | "assistant"; text: string }[]
+  ): Promise<import("../triage/types.js").IntakeAnswers>;
 }

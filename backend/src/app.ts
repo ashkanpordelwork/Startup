@@ -26,7 +26,7 @@ async function requireDb(_req: Request, res: Response, next: NextFunction) {
 }
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
-app.use("/api/intent", intentRouter);
+app.use("/api/intent", requireDb, requireAuth, intentRouter);
 app.use("/api/auth", requireDb, authRouter);
 app.use("/api/intake", requireDb, requireAuth, intakeRouter);
 app.use("/api/plans", requireDb, requireAuth, plansRouter);

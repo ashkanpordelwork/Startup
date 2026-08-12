@@ -7,7 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-import { adaptPlanAction, askAboutAction, confirmPlan, detectIntent, submitIntake } from "../api/client";
+import {
+  adaptPlanAction,
+  askAboutAction,
+  buildPlanFromHistory,
+  confirmPlan,
+  converseOnboarding,
+  detectIntent,
+  getAiStatus,
+  submitIntake,
+} from "../api/client";
 import { ActionItem, IntakeAnswers } from "../api/types";
 import { CATEGORY_META } from "../lib/actionMeta";
 import { toPersianDigits } from "../lib/numerals";
@@ -338,6 +347,18 @@ export default function Chat() {
   const [prefilledGoal, setPrefilledGoal] = useState<string | null>(draft?.prefilledGoal ?? null);
   const [clarifyRounds, setClarifyRounds] = useState(0);
   const MAX_CLARIFY_ROUNDS = 2;
+  // §12: when a real AI is configured, onboarding is a fully open conversation
+  // instead of the structured question bank below. null = still checking.
+  const [aiChatMode, setAiChatMode] = useState<boolean | null>(null);
+  const [readyToBuildPlan, setReadyToBuildPlan] = useState(false);
+  const [buildingPlan, setBuildingPlan] = useState(false);
+
+  useEffect(() => {
+    if (topicActionId) return;
+    getAiStatus()
+      .then((s) => setAiChatMode(s.available))
+      .catch(() => setAiChatMode(false)); // fail safe: fall back to the structured flow
+  }, [topicActionId]);
   const [plan, setPlan] = useState<{ planId: string; actions: ActionItem[] } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -399,6 +420,27 @@ export default function Chat() {
     setInput("");
     setThinking(true);
     setError(null);
+
+    // §12: free-chat mode — no rule-based intent detection, no structured
+    // question bank. The AI itself drives the whole conversation and tells
+    // us (via readyToBuildPlan) when it has enough to build a plan.
+    if (aiChatMode) {
+      try {
+        const history = [...entries, { id: -1, role: "user" as const, text }].map((e) => ({
+          role: (e.role === "bot" ? "assistant" : "user") as "assistant" | "user",
+          text: e.text,
+        }));
+        const result = await converseOnboarding(history);
+        setThinking(false);
+        await streamBotMessage(result.reply);
+        setReadyToBuildPlan(result.readyToBuildPlan);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "خطای ناشناخته");
+        setThinking(false);
+      }
+      return;
+    }
+
     try {
       const result = await detectIntent(text);
       if (result.goal) {
@@ -421,6 +463,28 @@ export default function Chat() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطای ناشناخته");
       setThinking(false);
+    }
+  }
+
+  async function handleBuildPlanFromConversation() {
+    setBuildingPlan(true);
+    setError(null);
+    try {
+      const history = entries.map((e) => ({
+        role: (e.role === "bot" ? "assistant" : "user") as "assistant" | "user",
+        text: e.text,
+      }));
+      const result = await buildPlanFromHistory(history);
+      clearDraft();
+      await streamBotMessage(
+        `تحلیل من انجام شد. این اقدام‌ها رو برای «${result.title}» برات آماده کردم. اگه نکته‌ای داری بگو، وگرنه با دکمه‌ی پایین تایید کن:`
+      );
+      setPlan({ planId: result.planId, actions: result.actions });
+      setPhase("review");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "نتونستم پلن رو بسازم، دوباره امتحان کن");
+    } finally {
+      setBuildingPlan(false);
     }
   }
 
@@ -557,7 +621,7 @@ export default function Chat() {
   const showSuggestions = !topicActionId && phase === "intent" && entries.length === 1;
   const showReviewCards = phase === "review" && plan && !topicActionId;
   const showTextInput = true;
-  const textInputDisabled = phase === "questions" || phase === "confirm" || phase === "submitting";
+  const textInputDisabled = !aiChatMode && (phase === "questions" || phase === "confirm" || phase === "submitting");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -611,6 +675,15 @@ export default function Chat() {
           </div>
         )}
 
+        {aiChatMode && readyToBuildPlan && phase === "intent" && (
+          <div className="glass-light animate-fade-in-up flex justify-start rounded-xl px-4 py-3" style={{ borderRadius: "var(--radius-lg)" }}>
+            <Button size="sm" className="gap-2 rounded-full" disabled={buildingPlan} onClick={handleBuildPlanFromConversation}>
+              {buildingPlan ? <RefreshCircle size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              {buildingPlan ? "در حال ساختن پلن..." : "بله، پلنم رو بساز"}
+            </Button>
+          </div>
+        )}
+
         {thinking && (
           <div className="flex gap-1.5">
             <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
@@ -650,7 +723,7 @@ export default function Chat() {
         <div ref={bottomRef} />
       </div>
 
-      {(phase === "questions" || phase === "confirm") && (
+      {!aiChatMode && (phase === "questions" || phase === "confirm") && (
         <div
           className="glass-bar animate-fade-in-up max-h-[65vh] shrink-0 space-y-2 overflow-y-auto border-t px-5 pt-4 pb-3"
           style={{

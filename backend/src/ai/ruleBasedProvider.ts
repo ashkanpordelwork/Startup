@@ -72,6 +72,18 @@ class RuleBasedAiProvider implements AiProvider {
       reply: adaptReply(reason, title),
     };
   }
+
+  async converseOnboarding(): Promise<{ reply: string; readyToBuildPlan: boolean }> {
+    // Free-form conversation genuinely needs a real model — there's no
+    // sensible rule-based version of "hold an open dialogue". Callers must
+    // check GET /intent/ai-status first and fall back to the structured
+    // question bank when AI isn't configured.
+    throw new Error("converseOnboarding requires AI_PROVIDER=avalai");
+  }
+
+  async extractIntakeAnswers(): Promise<import("../triage/types.js").IntakeAnswers> {
+    throw new Error("extractIntakeAnswers requires AI_PROVIDER=avalai");
+  }
 }
 
 export const ruleBasedProvider = new RuleBasedAiProvider();

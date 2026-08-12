@@ -28,6 +28,33 @@ const SYSTEM_PROMPT = `تو یه دستیار همراه و صبور در یک �
 - کوتاه و مشخص جواب بده، نه طولانی و کلی‌گو.
 - اگه کاربر نشونه‌ای از پرچم قرمز پزشکی (بارداری، دیابت، فشار خون، سابقه‌ی اختلال خوردن) نشون داد، لحنت رو محتاطانه کن.`;
 
+/**
+ * The open-ended onboarding checklist (product-business-decisions §12).
+ * Every field here maps 1:1 to a field the rule-based triage engine
+ * (computeTrack) needs — this list is the contract between the free
+ * conversation and the existing, unchanged triage logic.
+ */
+const ONBOARDING_CHECKLIST = `این‌ها چیزهاییه که باید تا آخر مکالمه، از دل صحبت طبیعی (نه سوال‌پیچی)، بفهمی:
+
+پرچم‌های قرمز (اجباری — باید حتماً هرکدوم رو بپرسی، ولی نه همه‌شونو یه‌جا اول کار؛ هرجا طبیعی بود بپرس و توی جوابت بهش اشاره کن):
+- آیا باردار است (فقط اگر زن است)
+- آیا دیابت/بیماری کلیوی/قلبی/فشار خون دارد
+- آیا سابقه‌ی اختلال خوردن دارد
+- آیا داروی متابولیک مصرف می‌کند
+- آیا تحت نظر پزشک است
+- سنش زیر ۱۸ یا بالای ۶۵ است
+
+بقیه (اجباری، ولی زمان‌بندی و ترتیب پرسیدن کاملاً با خودته):
+- خواب: میانگین ساعت خواب، منظم بودن خواب، حس بیدار شدن، آیا بی‌خوابی دارد
+- استرس: سطح استرس، آیا اخیراً تغییر بزرگی در زندگی داشته، آیا استرس باعث پرخوری می‌شود
+- تاریخچه‌ی رژیم: چندبار رژیم گرفته، آیا سابقه‌ی یویو دارد، آیا الان یک گروه غذایی رو حذف کرده (اگه بله، کدوم گروه‌ها)
+- فعالیت: سطح فعالیت فعلی، آیا آسیب/محدودیت حرکتی دارد
+- هدف: هدف اصلی‌اش چیه (کاهش وزن/انرژی/خواب/استرس/عادت‌سازی)، انگیزه‌اش درونیه یا بیرونی (مثلاً برای خودش می‌خواد یا برای دیگران)
+
+وقتی همه‌ی این‌ها رو (حداقل به‌اندازه‌ی کافی) فهمیدی، در پایان پیامت این خط رو دقیقاً همین‌شکلی (توی خط جدا) بنویس:
+[READY_TO_BUILD]
+این خط هیچ‌وقت به کاربر نشون داده نمی‌شه، فقط یه علامت داخلیه. قبلش توی همون پیام، صریح از کاربر بپرس: «فکر کنم به‌اندازه‌ی کافی فهمیدم — می‌خوای الان برات یه پلن اختصاصی بسازم؟»`;
+
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -137,8 +164,78 @@ async function adaptAction(input: AdaptActionInput): Promise<AdaptActionResult> 
   }
 }
 
+async function converseOnboarding(
+  history: { role: "user" | "assistant"; text: string }[]
+): Promise<{ reply: string; readyToBuildPlan: boolean }> {
+  const messages: ChatMessage[] = [
+    { role: "system", content: `${SYSTEM_PROMPT}\n\n${ONBOARDING_CHECKLIST}` },
+    ...history.map((h) => ({ role: h.role, content: h.text }) as ChatMessage),
+  ];
+  const raw = await callAvalAI(messages, 350);
+  const readyToBuildPlan = raw.includes("[READY_TO_BUILD]");
+  const reply = raw.replace("[READY_TO_BUILD]", "").trim();
+  return { reply, readyToBuildPlan };
+}
+
+const EXTRACTION_SCHEMA_PROMPT = `از روی کل مکالمه‌ی زیر، این JSON رو دقیقاً با همین ساختار پر کن. اگه چیزی صریح گفته نشده بود، منطقی‌ترین حدس رو از روی context بزن (نه مقدار تصادفی). فقط خود JSON رو برگردون، هیچ توضیح یا متن اضافه‌ای ننویس:
+
+{
+  "redFlags": {
+    "isPregnant": boolean,
+    "hasDiabetesKidneyHeartOrBP": boolean,
+    "hasEatingDisorderHistory": boolean,
+    "onMetabolicMedication": boolean,
+    "underDoctorSupervision": boolean,
+    "ageUnder18OrOver65": boolean
+  },
+  "sleep": {
+    "avgSleepHours": number,
+    "sleepConsistency": "consistent" | "somewhat" | "inconsistent",
+    "wakeUpFeeling": "rested" | "neutral" | "exhausted",
+    "hasInsomnia": boolean
+  },
+  "stress": {
+    "stressLevel": "low" | "moderate" | "high",
+    "majorLifeChangeRecently": boolean,
+    "emotionalEating": boolean
+  },
+  "dietHistory": {
+    "previousDietsCount": number,
+    "hasYoyoWeightHistory": boolean,
+    "currentlyEliminatingFoodGroup": boolean
+  },
+  "activity": {
+    "currentActivityLevel": "sedentary" | "light" | "moderate" | "active",
+    "hasInjuryOrMobilityLimitation": boolean
+  },
+  "goal": {
+    "primaryGoal": "weight_loss" | "energy" | "sleep" | "stress" | "habit_building",
+    "motivation": "intrinsic" | "extrinsic"
+  }
+}`;
+
+async function extractIntakeAnswers(
+  history: { role: "user" | "assistant"; text: string }[]
+): Promise<import("../triage/types.js").IntakeAnswers> {
+  const transcript = history.map((h) => `${h.role === "user" ? "کاربر" : "دستیار"}: ${h.text}`).join("\n");
+  const raw = await callAvalAI(
+    [
+      { role: "system", content: EXTRACTION_SCHEMA_PROMPT },
+      { role: "user", content: `مکالمه:\n${transcript}` },
+    ],
+    600
+  );
+  const parsed = JSON.parse(raw) as import("../triage/types.js").IntakeAnswers;
+  if (!parsed.redFlags || !parsed.sleep || !parsed.stress || !parsed.dietHistory || !parsed.activity || !parsed.goal) {
+    throw new Error("Malformed IntakeAnswers JSON from AvalAI extraction");
+  }
+  return parsed;
+}
+
 export const avalaiProvider: AiProvider = {
   detectIntent,
   answerQuestion,
   adaptAction,
+  converseOnboarding,
+  extractIntakeAnswers,
 };

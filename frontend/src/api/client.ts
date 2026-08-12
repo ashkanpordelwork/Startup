@@ -85,6 +85,26 @@ export function submitIntake(answers: IntakeAnswers) {
   });
 }
 
+export function getAiStatus() {
+  return request<{ available: boolean }>("/intent/ai-status");
+}
+
+export type ConverseHistoryEntry = { role: "user" | "assistant"; text: string };
+
+export function converseOnboarding(history: ConverseHistoryEntry[]) {
+  return request<{ reply: string; readyToBuildPlan: boolean }>("/intent/converse", {
+    method: "POST",
+    body: JSON.stringify({ history }),
+  });
+}
+
+export function buildPlanFromHistory(history: ConverseHistoryEntry[]) {
+  return request<IntakeResult>("/intent/build-plan", {
+    method: "POST",
+    body: JSON.stringify({ history }),
+  });
+}
+
 export function getPlans() {
   return request<PlanSummary[]>("/plans");
 }
