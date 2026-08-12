@@ -309,6 +309,7 @@ export default function Chat() {
     prefilledGoal: string | null;
     rawAnswers?: Record<number, boolean | string | number>;
     eliminatedGroups?: string[];
+    readyToBuildPlan?: boolean;
   };
   function loadDraft(): Draft | null {
     if (topicActionId) return null; // topic Q&A sessions are never persisted
@@ -350,7 +351,7 @@ export default function Chat() {
   // §12: when a real AI is configured, onboarding is a fully open conversation
   // instead of the structured question bank below. null = still checking.
   const [aiChatMode, setAiChatMode] = useState<boolean | null>(null);
-  const [readyToBuildPlan, setReadyToBuildPlan] = useState(false);
+  const [readyToBuildPlan, setReadyToBuildPlan] = useState(draft?.readyToBuildPlan ?? false);
   const [buildingPlan, setBuildingPlan] = useState(false);
 
   useEffect(() => {
@@ -380,13 +381,13 @@ export default function Chat() {
   useEffect(() => {
     if (topicActionId) return;
     if (phase !== "intent" && phase !== "questions" && phase !== "confirm") return;
-    const toSave: Draft = { entries, phase, answers, stepIndex, prefilledGoal, rawAnswers, eliminatedGroups };
+    const toSave: Draft = { entries, phase, answers, stepIndex, prefilledGoal, rawAnswers, eliminatedGroups, readyToBuildPlan };
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(toSave));
     } catch {
       // ignore quota errors — losing draft persistence is non-fatal
     }
-  }, [entries, phase, answers, stepIndex, prefilledGoal, rawAnswers, eliminatedGroups, topicActionId]);
+  }, [entries, phase, answers, stepIndex, prefilledGoal, rawAnswers, eliminatedGroups, readyToBuildPlan, topicActionId]);
 
   function clearDraft() {
     try {
@@ -495,6 +496,13 @@ export default function Chat() {
     } finally {
       setBuildingPlan(false);
     }
+  }
+
+  // کاربر می‌گه «فعلاً نه» — مکالمه پاک نمی‌شه، به‌عنوان draft توی localStorage
+  // می‌مونه (persistDraft effect خودش این کارو می‌کنه) و کاربر به صفحه‌ی
+  // اصلی برمی‌گرده؛ از همون‌جا می‌تونه بعداً برگرده و ادامه بده.
+  function handleDeclineBuildPlan() {
+    navigate("/");
   }
 
   async function handleTopicQuestion() {
@@ -684,15 +692,6 @@ export default function Chat() {
           </div>
         )}
 
-        {aiChatMode && readyToBuildPlan && phase === "intent" && (
-          <div className="glass-light animate-fade-in-up flex justify-start rounded-xl px-4 py-3" style={{ borderRadius: "var(--radius-lg)" }}>
-            <Button size="sm" className="gap-2 rounded-full" disabled={buildingPlan} onClick={handleBuildPlanFromConversation}>
-              {buildingPlan ? <RefreshCircle size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              {buildingPlan ? "در حال ساختن پلن..." : "بله، پلنم رو بساز"}
-            </Button>
-          </div>
-        )}
-
         {thinking && (
           <div className="flex gap-1.5">
             <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
@@ -837,7 +836,22 @@ export default function Chat() {
         </div>
       )}
 
-      {showTextInput && (
+      {aiChatMode && readyToBuildPlan && phase === "intent" ? (
+        <div className="glass-bar mx-4 mb-3 flex items-center gap-2.5 rounded-3xl p-3" style={{ borderRadius: "var(--radius-xl)" }}>
+          <Button
+            className="flex-1 gap-2 rounded-full"
+            disabled={buildingPlan}
+            onClick={handleBuildPlanFromConversation}
+          >
+            {buildingPlan ? <RefreshCircle size={16} className="animate-spin" /> : <Sparkles size={16} />}
+            {buildingPlan ? "در حال ساختن..." : "آره، بساز"}
+          </Button>
+          <Button variant="outline" className="flex-1 rounded-full" disabled={buildingPlan} onClick={handleDeclineBuildPlan}>
+            فعلاً نه
+          </Button>
+        </div>
+      ) : (
+        showTextInput && (
         <div className={`flex items-end gap-2.5 px-5 py-4 ${textInputDisabled ? "opacity-50" : ""}`}>
           <div
             className="glass-bar flex flex-1 items-end gap-2.5 rounded-3xl px-4 py-2.5"
@@ -887,6 +901,7 @@ export default function Chat() {
             </Button>
           </div>
         </div>
+        )
       )}
     </div>
   );

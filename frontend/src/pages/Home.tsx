@@ -128,6 +128,43 @@ function PlanCardSkeleton({ style }: { style?: CSSProperties }) {
   );
 }
 
+/**
+ * If the user backed out of building a plan mid-conversation ("فعلاً نه"),
+ * the AI chat draft stays in localStorage (see Chat.tsx DRAFT_KEY). This
+ * surfaces it here so they can resume instead of losing the conversation.
+ */
+function DraftChatCard() {
+  const draftEntryCount = (() => {
+    try {
+      const raw = localStorage.getItem("intake_draft_v2");
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw) as { entries?: unknown[]; phase?: string };
+      if (parsed.phase !== "intent" && parsed.phase !== "questions" && parsed.phase !== "confirm") return 0;
+      return parsed.entries?.length ?? 0;
+    } catch {
+      return 0;
+    }
+  })();
+
+  if (draftEntryCount <= 1) return null; // just the greeting, nothing to resume
+
+  return (
+    <Link
+      to="/chat"
+      className="flex animate-fade-in-up items-center gap-3 rounded-2xl bg-card p-4 shadow-chat"
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-brand">
+        <Sparkles size={20} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold">گفتگوی نیمه‌تمام</p>
+        <p className="mt-0.5 truncate text-sm text-helper-foreground">هنوز پلنش ساخته نشده — برگرد ادامه بده</p>
+      </div>
+      <ChevronLeft size={18} />
+    </Link>
+  );
+}
+
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -157,6 +194,8 @@ export default function Home() {
       </div>
 
       <CheckInCard />
+
+      <DraftChatCard />
 
       {error && <p className="px-1 text-sm text-destructive">{error}</p>}
 
