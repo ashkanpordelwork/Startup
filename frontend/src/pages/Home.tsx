@@ -133,18 +133,20 @@ function PlanCardSkeleton({ style }: { style?: CSSProperties }) {
  * the AI chat draft stays in localStorage (see Chat.tsx DRAFT_KEY). This
  * surfaces it here so they can resume instead of losing the conversation.
  */
+function getDraftEntryCount(): number {
+  try {
+    const raw = localStorage.getItem("intake_draft_v2");
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { entries?: unknown[]; phase?: string };
+    if (parsed.phase !== "intent" && parsed.phase !== "questions" && parsed.phase !== "confirm") return 0;
+    return parsed.entries?.length ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 function DraftChatCard() {
-  const draftEntryCount = (() => {
-    try {
-      const raw = localStorage.getItem("intake_draft_v2");
-      if (!raw) return 0;
-      const parsed = JSON.parse(raw) as { entries?: unknown[]; phase?: string };
-      if (parsed.phase !== "intent" && parsed.phase !== "questions" && parsed.phase !== "confirm") return 0;
-      return parsed.entries?.length ?? 0;
-    } catch {
-      return 0;
-    }
-  })();
+  const draftEntryCount = getDraftEntryCount();
 
   if (draftEntryCount <= 1) return null; // just the greeting, nothing to resume
 
@@ -176,7 +178,7 @@ export default function Home() {
     getPlans()
       .then((result) => {
         setPlans(result);
-        if (result.length === 0) {
+        if (result.length === 0 && getDraftEntryCount() <= 1) {
           navigate("/chat", { replace: true });
         }
       })

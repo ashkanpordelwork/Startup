@@ -231,6 +231,20 @@ const EXTRACTION_SCHEMA_PROMPT = `از روی کل مکالمه‌ی زیر، ا
   }
 }`;
 
+/**
+ * Models sometimes wrap JSON in ```json fences or add a stray sentence
+ * before/after it despite instructions not to. Pull out just the {...}
+ * block so JSON.parse doesn't choke on the surrounding text.
+ */
+function extractJsonBlock(raw: string): string {
+  const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const candidate = fenceMatch ? fenceMatch[1] : raw;
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return candidate.trim();
+  return candidate.slice(start, end + 1);
+}
+
 async function extractIntakeAnswers(
   history: { role: "user" | "assistant"; text: string }[]
 ): Promise<import("../triage/types.js").IntakeAnswers> {
@@ -240,10 +254,17 @@ async function extractIntakeAnswers(
       { role: "system", content: EXTRACTION_SCHEMA_PROMPT },
       { role: "user", content: `مکالمه:\n${transcript}` },
     ],
-    600
+    900
   );
-  const parsed = JSON.parse(raw) as import("../triage/types.js").IntakeAnswers;
+  let parsed: import("../triage/types.js").IntakeAnswers;
+  try {
+    parsed = JSON.parse(extractJsonBlock(raw)) as import("../triage/types.js").IntakeAnswers;
+  } catch (err) {
+    console.error("[avalaiProvider] extractIntakeAnswers JSON.parse failed. Raw response:", raw);
+    throw err;
+  }
   if (!parsed.redFlags || !parsed.sleep || !parsed.stress || !parsed.dietHistory || !parsed.activity || !parsed.goal) {
+    console.error("[avalaiProvider] extractIntakeAnswers missing fields. Parsed:", parsed);
     throw new Error("Malformed IntakeAnswers JSON from AvalAI extraction");
   }
   return parsed;

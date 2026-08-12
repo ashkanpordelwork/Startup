@@ -1,4 +1,4 @@
-import { ChatRoundDots, CheckCircle, Mic, RefreshCircle, Send, Sparkles } from "reicon-react";
+import { ChatRoundDots, CheckCircle, RefreshCircle, Send, Sparkles } from "reicon-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -857,7 +857,6 @@ export default function Chat() {
             className="glass-bar flex flex-1 items-end gap-2.5 rounded-3xl px-4 py-2.5"
             style={{ borderRadius: "var(--radius-xl)" }}
           >
-            <Mic size={20} className="mb-1.5 shrink-0 text-muted-foreground" />
             <textarea
               ref={inputRef}
               rows={1}
