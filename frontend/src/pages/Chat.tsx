@@ -618,7 +618,7 @@ export default function Chat() {
 
   const currentStep = phase === "questions" && !showEliminatePicker ? STEPS[stepIndex] : null;
   const progressPercent = (stepIndex / STEPS.length) * 100;
-  const showSuggestions = !topicActionId && phase === "intent" && entries.length === 1;
+  const showSuggestions = !topicActionId && !aiChatMode && phase === "intent" && entries.length === 1;
   const showReviewCards = phase === "review" && plan && !topicActionId;
   const showTextInput = true;
   const textInputDisabled = !aiChatMode && (phase === "questions" || phase === "confirm" || phase === "submitting");
@@ -847,7 +847,7 @@ export default function Chat() {
                   ? "سوالت رو بپرس..."
                   : phase === "review"
                   ? "اگه نکته‌ای داری بگو..."
-                  : "مثلاً: می‌خوام لاغر شم"
+                  : "چطور می‌تونم کمکت کنم؟"
               }
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
